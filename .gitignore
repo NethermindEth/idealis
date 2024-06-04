@@ -1,0 +1,18 @@
+# IDE Caches
+.idea/
+
+# Secrets
+.env
+
+# Logs
+*.log
+
+# Python caches
+.pytest_cache/
+__pycache__
+
+# environments
+env/
+
+# Dist Files
+dist/
