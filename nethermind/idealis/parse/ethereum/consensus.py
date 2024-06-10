@@ -15,17 +15,13 @@ def parse_signed_beacon_block(signed_block_header: dict[str, Any]) -> BeaconBloc
     )
 
 
-def parse_blob_sidecar_response(
-    response_data: list[dict[str, Any]]
-) -> tuple[BeaconBlock | None, list[BlobSidecar]]:
+def parse_blob_sidecar_response(response_data: list[dict[str, Any]]) -> tuple[BeaconBlock | None, list[BlobSidecar]]:
     blob_sidecars = []
     beacon_block = None
 
     for blob_sidecar in response_data:
         if not beacon_block:
-            beacon_block = parse_signed_beacon_block(
-                blob_sidecar["signed_block_header"]
-            )
+            beacon_block = parse_signed_beacon_block(blob_sidecar["signed_block_header"])
 
         blob_sidecars.append(
             BlobSidecar(
@@ -34,9 +30,7 @@ def parse_blob_sidecar_response(
                 blob_data=to_bytes(blob_sidecar["blob"]),
                 kzg_commitment=to_bytes(blob_sidecar["kzg_commitment"]),
                 kzg_proof=to_bytes(blob_sidecar["kzg_proof"]),
-                kzg_commitment_inclusion_proof=[
-                    to_bytes(p) for p in blob_sidecar["kzg_commitment_inclusion_proof"]
-                ],
+                kzg_commitment_inclusion_proof=[to_bytes(p) for p in blob_sidecar["kzg_commitment_inclusion_proof"]],
             )
         )
 
