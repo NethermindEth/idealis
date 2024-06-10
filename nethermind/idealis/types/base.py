@@ -4,7 +4,7 @@ from typing import Any, Callable, Sequence
 class DataclassDBInterface:
     def db_tuple(
         self,
-        json_encoder: Callable[[Any], Any],
+        json_encoder: Callable[[Any], Any] | None = None,
         json_fields: set[str] | None = None,
         custom_parser: dict[str, callable] | None = None,
     ) -> tuple:
@@ -19,7 +19,10 @@ class DataclassDBInterface:
         :return: (Any, ...)
         """
 
-        return_tuple = []
+        if json_fields and json_encoder is None:
+            raise ValueError("Json Encoder param required for json dataclass fields")
+
+        return_cols = []
         for field_name, field_type in self.__annotations__.items():
             encode_field = getattr(self, field_name)
 
@@ -27,11 +30,11 @@ class DataclassDBInterface:
                 encode_field = custom_parser[field_name](encode_field)
 
             if json_fields and field_name in json_fields:
-                return_tuple.append(json_encoder(encode_field))
+                return_cols.append(json_encoder(encode_field))
             else:
-                return_tuple.append(encode_field)
+                return_cols.append(encode_field)
 
-        return tuple(return_tuple)
+        return tuple(return_cols)
 
     def from_db_row(self, row: Sequence[Any]):
         for idx, (field_name, field_type) in enumerate(self.__annotations__):
