@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "idealis"
 version = "0.0.1"
-description = "Blockchain/ Parsing, RPC Interfacing, and Python Dataclass Definitions"
+description = "Blockchain Parsing, RPC Interfacing, and Python Dataclass Definitions"
 authors = ["Eli Barbieri <elicbarbieri@gmail.com>"]
 readme = "README.md"
 packages = [
-    { include = "idealis", from = "nethermind" },
+    { include = "nethermind" },
 ]
 
 [tool.poetry.dependencies]
