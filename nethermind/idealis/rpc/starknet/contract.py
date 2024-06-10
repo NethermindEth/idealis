@@ -70,9 +70,7 @@ def is_class(felt: bytes, rpc_url: str) -> bool:
     return "error" not in response.json()
 
 
-def _is_proxy(
-    decoder: DecodingDispatcher, target_impl: bytes
-) -> tuple[bool, bytes | None]:
+def _is_proxy(decoder: DecodingDispatcher, target_impl: bytes) -> tuple[bool, bytes | None]:
     """
 
     :param decoder:
@@ -107,14 +105,10 @@ def _is_proxy(
     if proxy_method_selector is None:
         return False, None
 
-    function_type_id = target_impl_abi.function_ids[
-        proxy_method_selector[-8:]
-    ].decoder_reference
+    function_type_id = target_impl_abi.function_ids[proxy_method_selector[-8:]].decoder_reference
     _, output_types = decoder.function_types[function_type_id]
 
-    if len(output_types) != 1 or output_types[
-        0
-    ] not in [  # implementation function returns single value
+    if len(output_types) != 1 or output_types[0] not in [  # implementation function returns single value
         StarknetCoreType.Felt,
         StarknetCoreType.ContractAddress,
         StarknetCoreType.ClassHash,
@@ -217,9 +211,7 @@ async def get_contract_upgrade(
 
     while low < high:
         mid = low + (high - low) // 2
-        impl_class = await get_implemented_class(
-            contract_address, mid, aiohttp_session, rpc_url
-        )
+        impl_class = await get_implemented_class(contract_address, mid, aiohttp_session, rpc_url)
         if impl_class == old_class:
             low = mid + 1
         else:
@@ -248,18 +240,14 @@ async def get_proxy_upgrade(
 
     while low < high:
         mid = low + (high - low) // 2
-        proxy_impl = await get_proxied_felt(
-            contract_address, mid, aiohttp_session, rpc_url, proxy_method
-        )
+        proxy_impl = await get_proxied_felt(contract_address, mid, aiohttp_session, rpc_url, proxy_method)
         if proxy_impl == old_implementation:
             low = mid + 1
         else:
             high = mid
 
     return (
-        await get_proxied_felt(
-            contract_address, low, aiohttp_session, rpc_url, proxy_method
-        ),
+        await get_proxied_felt(contract_address, low, aiohttp_session, rpc_url, proxy_method),
         low,
     )
 
@@ -300,9 +288,7 @@ async def get_class_history(
         )
 
     if target_implementation is None:
-        logger.warning(
-            f"Contract 0x{contract_address.hex()} not found at block {to_block}"
-        )
+        logger.warning(f"Contract 0x{contract_address.hex()} not found at block {to_block}")
         return None
 
     while old_class != target_implementation:
@@ -387,9 +373,7 @@ async def generate_contract_implementation(
     if to_block is None:
         to_block = sync_get_current_block(rpc_url)
 
-    class_history = await get_class_history(
-        aiohttp_session, rpc_url, contract_address, to_block
-    )
+    class_history = await get_class_history(aiohttp_session, rpc_url, contract_address, to_block)
     if class_history is None:
         return None
 
@@ -423,9 +407,7 @@ async def generate_contract_implementation(
             to_block=proxy_to_block,
         )
 
-        contract_impl_history.update(
-            {str(block): {"proxy_class": class_hash, **proxy_impl_history}}
-        )
+        contract_impl_history.update({str(block): {"proxy_class": class_hash, **proxy_impl_history}})
 
     return ContractImplementation(
         contract_address=contract_address,
@@ -483,9 +465,7 @@ async def update_contract_implementation(
         # Update Root Class History
         contract_history.history.update({str(k): v for k, v in class_history.items()})
 
-    latest_root_proxy, latest_root_proxy_method = _is_proxy(
-        class_decoder, latest_root_impl
-    )
+    latest_root_proxy, latest_root_proxy_method = _is_proxy(class_decoder, latest_root_impl)
 
     if latest_root_impl == target_implementation and not latest_root_proxy:
         # Implementation has not changed, and current root class is not proxy
@@ -513,13 +493,9 @@ async def update_contract_implementation(
 
         if isinstance(root_impl, str):  # No proxy history yet
             proxy_search_from = root_impl_block
-            contract_history.history[str(root_impl_block)].update(
-                {"proxy_class": root_impl}
-            )
+            contract_history.history[str(root_impl_block)].update({"proxy_class": root_impl})
         else:
-            proxy_search_from = max(
-                int(k) for k in root_impl.keys() if k != "proxy_class"
-            )
+            proxy_search_from = max(int(k) for k in root_impl.keys() if k != "proxy_class")
 
         try:
             proxy_to_block = sorted_keys[impl_idx + 1] - 1
@@ -571,9 +547,7 @@ def get_decode_class(
     contract_impl = contract_implementations.get(contract_address)
 
     if contract_impl is None:
-        raise ValueError(
-            f"Contract {to_hex(contract_address, pad=32)} not present in implementation mapping"
-        )
+        raise ValueError(f"Contract {to_hex(contract_address, pad=32)} not present in implementation mapping")
 
     if contract_impl.update_block < block_number:
         raise ValueError(
@@ -589,9 +563,7 @@ def get_decode_class(
         )
 
     impl_block = (
-        block_history[0]
-        if len(block_history) == 1
-        else block_history[bisect_right(block_history, block_number) - 1]
+        block_history[0] if len(block_history) == 1 else block_history[bisect_right(block_history, block_number) - 1]
     )
 
     impl_class = contract_impl.history[str(impl_block)]
@@ -600,9 +572,7 @@ def get_decode_class(
         return to_bytes(impl_class)
 
     # Handle proxy implementations
-    proxy_block_history = sorted(
-        int(b) for b in impl_class.keys() if b != "proxy_class"
-    )
+    proxy_block_history = sorted(int(b) for b in impl_class.keys() if b != "proxy_class")
 
     impl_block = (
         proxy_block_history[0]
@@ -613,8 +583,6 @@ def get_decode_class(
     proxied_contract = to_bytes(impl_class[str(impl_block)])
 
     if proxied_contract not in contract_implementations:
-        raise ValueError(
-            f"Proxy contract 0x{proxied_contract.hex()} not present in implementation mapping"
-        )
+        raise ValueError(f"Proxy contract 0x{proxied_contract.hex()} not present in implementation mapping")
 
     return get_decode_class(proxied_contract, contract_implementations, block_number)

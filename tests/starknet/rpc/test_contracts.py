@@ -85,16 +85,17 @@ async def test_get_contract_upgrade(async_http_session, starknet_rpc_url):
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_get_contract_history(starknet_class_decoder, async_http_session, starknet_rpc_url):
-
     class_a = "0x025ec026985a3bf9d0cc1fe17326b245dfdc3ff89b8fde106542a3ea56c5a918"
     class_b = "0x01a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003"
     class_c = "0x029927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b"
 
-    class_decoder = await starknet_class_decoder([
-        to_bytes(class_a),
-        to_bytes(class_b),
-        to_bytes(class_c),
-    ])
+    class_decoder = await starknet_class_decoder(
+        [
+            to_bytes(class_a),
+            to_bytes(class_b),
+            to_bytes(class_c),
+        ]
+    )
 
     contract_implementation = await generate_contract_implementation(
         class_decoder=class_decoder,
@@ -120,7 +121,9 @@ async def test_get_contract_history(starknet_class_decoder, async_http_session, 
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_get_proxy_implementation_history(starknet_rpc_url, async_http_session, starknet_class_decoder):
-    class_decoder = await starknet_class_decoder([to_bytes("025ec026985a3bf9d0cc1fe17326b245dfdc3ff89b8fde106542a3ea56c5a918")])
+    class_decoder = await starknet_class_decoder(
+        [to_bytes("025ec026985a3bf9d0cc1fe17326b245dfdc3ff89b8fde106542a3ea56c5a918")]
+    )
 
     contract_implementation = await generate_contract_implementation(
         class_decoder=class_decoder,
@@ -157,11 +160,7 @@ async def test_get_contract_null_implementation(starknet_rpc_url, async_http_ses
 
 @pytest.mark.asyncio
 @pytest.mark.slow
-async def test_complex_proxy_to_native_contract(
-    starknet_rpc_url,
-    async_http_session,
-    starknet_class_decoder
-):
+async def test_complex_proxy_to_native_contract(starknet_rpc_url, async_http_session, starknet_class_decoder):
     starknet_eth_address = to_bytes("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
     starknet_eth_proxy = to_bytes("0x048624e084dc68d82076582219c7ed8cb0910c01746cca3cd72a28ecfe07e42d")
 
@@ -209,7 +208,10 @@ async def test_complex_proxy_to_native_contract(
 
     assert proxy_impl.history == {"2810": proxy_impl_addr}
 
-    contract_mapping = {starknet_eth_address: starknet_eth_impl, starknet_eth_proxy: proxy_impl}
+    contract_mapping = {
+        starknet_eth_address: starknet_eth_impl,
+        starknet_eth_proxy: proxy_impl,
+    }
 
     assert get_decode_class(starknet_eth_address, contract_mapping, 3000) == to_bytes(proxy_impl_addr)
 

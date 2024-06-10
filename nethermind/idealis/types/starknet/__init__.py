@@ -1,14 +1,3 @@
-from .core import (
-    BlockResponse as Block,
-    Transaction,
-    Event,
-    DecodedOperation,
-    Trace,
-    Message,
-    StateDiff,
-)
-
-from .contracts import (
-    ContractImplementation,
-    StarknetClass,
-)
+from .contracts import ContractImplementation, StarknetClass
+from .core import BlockResponse as Block
+from .core import DecodedOperation, Event, Message, StateDiff, Trace, Transaction

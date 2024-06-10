@@ -95,9 +95,9 @@ async def get_blocks_with_txns(
                 logger.error(f"Error parsing block {block_number}: {e}")
                 raise e
 
-    response_data: tuple[
-        tuple[BlockResponse, list[TransactionResponse], list[Event]]
-    ] = await asyncio.gather(*[_get_block(block) for block in blocks])
+    response_data: tuple[tuple[BlockResponse, list[TransactionResponse], list[Event]]] = await asyncio.gather(
+        *[_get_block(block) for block in blocks]
+    )
 
     out_blocks, out_txns, out_events = [], [], []
     for block, txns, events in response_data:
@@ -155,9 +155,7 @@ async def get_class_abis(
 
             return response_json["result"]["abi"]
 
-    class_abis = await asyncio.gather(
-        *[_get_class(class_hash) for class_hash in class_hashes]
-    )
+    class_abis = await asyncio.gather(*[_get_class(class_hash) for class_hash in class_hashes])
     return class_abis
 
 

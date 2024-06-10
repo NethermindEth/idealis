@@ -26,17 +26,13 @@ async def get_current_slot(
     logger.debug("Async GET Beacon-Chain Head")
     async with session.get(f"{beacon_api}/eth/v1/beacon/headers") as response:
         try:
-            block_header = await parse_beacon_api_async_response(
-                response, error_handler
-            )
+            block_header = await parse_beacon_api_async_response(response, error_handler)
             return int(block_header["data"][0]["header"]["message"]["slot"])
         except BlockNotFoundError:
             return None
 
 
-def sync_get_current_slot(
-    beacon_api: str, error_handler: Callable[[str], NoReturn]
-) -> int | None:
+def sync_get_current_slot(beacon_api: str, error_handler: Callable[[str], NoReturn]) -> int | None:
     """
     Get the current slot from the beacon chain.  If Block Not Found Error occurs, returns None
 
@@ -45,9 +41,7 @@ def sync_get_current_slot(
     :return:
     """
     response = requests.get(f"{beacon_api}/eth/v1/beacon/headers")
-    logger.debug(
-        f"Sync GET Request -- Beacon-Chain Head Returned {len(response.content)} bytes"
-    )
+    logger.debug(f"Sync GET Request -- Beacon-Chain Head Returned {len(response.content)} bytes")
 
     try:
         block_header = parse_beacon_api_response(response, error_handler)
@@ -69,12 +63,8 @@ async def get_beacon_block(
         url=f"{beacon_api_url}/eth/v1/beacon/blob_sidecars/{slot}",
     ) as response:
         try:
-            response_json = await parse_beacon_api_async_response(
-                response, error_handler
-            )
-            logger.debug(
-                f"Finished Reading HTTP Response Bytes & Decoding JSON for Beacon Block {slot}"
-            )
+            response_json = await parse_beacon_api_async_response(response, error_handler)
+            logger.debug(f"Finished Reading HTTP Response Bytes & Decoding JSON for Beacon Block {slot}")
 
             return parse_blob_sidecar_response(response_json["data"])
 
@@ -89,9 +79,7 @@ def sync_get_beacon_block(
     error_handler: Callable[[str], NoReturn],
 ) -> tuple[BeaconBlock | None, list[BlobSidecar]]:
     response = requests.get(f"{beacon_api_url}/eth/v1/beacon/blob_sidecars/{slot}")
-    logger.debug(
-        f"Sync GET -- beacon block {slot} returned {len(response.content)} bytes"
-    )
+    logger.debug(f"Sync GET -- beacon block {slot} returned {len(response.content)} bytes")
 
     try:
         response_json = parse_beacon_api_response(response, error_handler)

@@ -1,4 +1,4 @@
-from nethermind.idealis.rpc.ethereum.trace_parsing import (
+from nethermind.idealis.parse.ethereum.trace import (
     parse_call_trace,
     parse_create_trace,
     parse_reward_trace,

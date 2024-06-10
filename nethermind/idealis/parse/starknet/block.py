@@ -24,15 +24,9 @@ def parse_block_with_tx_receipts(
         timestamp=response_json["timestamp"],
         l1_gas_price_fri=hex_to_int(response_json["l1_gas_price"]["price_in_fri"]),
         l1_gas_price_wei=hex_to_int(response_json["l1_gas_price"]["price_in_wei"]),
-        l1_data_gas_price_fri=hex_to_int(
-            response_json["l1_data_gas_price"]["price_in_fri"]
-        ),
-        l1_data_gas_price_wei=hex_to_int(
-            response_json["l1_data_gas_price"]["price_in_wei"]
-        ),
-        l1_da_mode=BlockDataAvailabilityMode(
-            response_json.get("l1_da_mode", "CALLDATA")
-        ),
+        l1_data_gas_price_fri=hex_to_int(response_json["l1_data_gas_price"]["price_in_fri"]),
+        l1_data_gas_price_wei=hex_to_int(response_json["l1_data_gas_price"]["price_in_wei"]),
+        l1_da_mode=BlockDataAvailabilityMode(response_json.get("l1_da_mode", "CALLDATA")),
         starknet_version=response_json["starknet_version"],
         transaction_count=len(response_json["transactions"]),
         total_fee=0,
@@ -40,9 +34,7 @@ def parse_block_with_tx_receipts(
 
     transactions, all_events = [], []
     for tx_idx, tx in enumerate(response_json["transactions"]):
-        tx_response, events = parse_transaction_with_receipt(
-            tx, block_num, tx_idx, block_response.timestamp
-        )
+        tx_response, events = parse_transaction_with_receipt(tx, block_num, tx_idx, block_response.timestamp)
         transactions.append(tx_response)
         all_events.extend(events)
 

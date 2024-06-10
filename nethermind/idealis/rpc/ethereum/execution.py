@@ -56,9 +56,7 @@ async def trace_block(
         },
     ) as response:
         block_traces = await parse_eth_rpc_async_response(response)
-        logger.debug(
-            f"Async POST -- trace_block {block_number} returned {response.content_length} bytes"
-        )
+        logger.debug(f"Async POST -- trace_block {block_number} returned {response.content_length} bytes")
 
         return unpack_trace_block_response(block_traces)
 
@@ -80,8 +78,6 @@ async def debug_trace_block(
         },
     ) as response:
         block_traces = await parse_eth_rpc_async_response(response)
-        logger.debug(
-            f"Finished Reading HTTP Response Bytes & Decoding JSON for Block {block_number} Debug Traces"
-        )
+        logger.debug(f"Finished Reading HTTP Response Bytes & Decoding JSON for Block {block_number} Debug Traces")
 
         return unpack_debug_trace_block_response(block_traces, block_number)

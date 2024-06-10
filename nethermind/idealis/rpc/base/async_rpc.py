@@ -70,9 +70,7 @@ async def parse_eth_rpc_async_response(
 
             case _:
                 logger.error(f"\n{'-' * 40}")
-                logger.error(
-                    "Unexpected Error in response for request: ", response.request_info
-                )
+                logger.error("Unexpected Error in response for request: ", response.request_info)
                 logger.error(f"Error Code: {response.status}")
                 logger.error(await response.text())
                 logger.error("-" * 40)
@@ -81,9 +79,7 @@ async def parse_eth_rpc_async_response(
         raise RPCTimeoutError(f"Timeout Error for RPC Host {response.host}")
 
 
-async def parse_beacon_api_async_response(
-    response: ClientResponse, error_handler: Callable[[str], NoReturn]
-):
+async def parse_beacon_api_async_response(response: ClientResponse, error_handler: Callable[[str], NoReturn]):
     match response.status:
         case 200:
             response_json = await response.json()
@@ -104,9 +100,7 @@ async def parse_beacon_api_async_response(
             raise NotImplementedError("Unexpected AioHttp Error")
 
 
-def parse_beacon_api_response(
-    response: Response, error_handler: Callable[[str], NoReturn]
-):
+def parse_beacon_api_response(response: Response, error_handler: Callable[[str], NoReturn]):
     match response.status_code:
         case 200:
             return response.json()

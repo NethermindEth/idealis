@@ -22,9 +22,7 @@ async def starknet_class_decoder(async_http_session, starknet_rpc_url):
             if isinstance(abi, str):
                 abi = json.loads(abi)
 
-            parsed_abi = StarknetAbi.from_json(
-                abi, abi_name="unknown", class_hash=class_hash
-            )
+            parsed_abi = StarknetAbi.from_json(abi, abi_name="unknown", class_hash=class_hash)
 
             dispatcher.add_abi(parsed_abi)
 

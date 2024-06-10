@@ -10,9 +10,7 @@ def parse_starknet_class(
     class_name: str | None = None,
 ) -> StarknetClass:
     if declare_tx.class_hash is None:
-        raise ValueError(
-            f"Starknet Tx 0x{declare_tx.transaction_hash.hex()} is not valid Declare Tx"
-        )
+        raise ValueError(f"Starknet Tx 0x{declare_tx.transaction_hash.hex()} is not valid Declare Tx")
 
     return StarknetClass(
         name=class_name,

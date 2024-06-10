@@ -4,7 +4,6 @@ from typing import Any
 
 @dataclass(slots=True)
 class EraBlock:
-
     block_number: int
     block_timestamp: int
     base_fee_per_gas: int  # manually set during block instantiation
@@ -23,7 +22,6 @@ class EraBlock:
 
 @dataclass(slots=True)
 class EraTransaction:
-
     transaction_hash: bytes
     block_number: int
     transaction_index: int

@@ -55,9 +55,7 @@ class TransactionResponse:
 
     account_deployment_data: list[bytes]  # Used in V3 transactions
     tip: int  # Not In Use
-    resource_bounds: dict[
-        str, int
-    ] | None  # Not in Use -- Will Eventually Enable Fee Market
+    resource_bounds: dict[str, int] | None  # Not in Use -- Will Eventually Enable Fee Market
     paymaster_data: list[bytes]
     fee_data_availability_mode: int  # Not in Use -- Convert to Enum Eventually
     nonce_data_availability_mode: int  # Not in Use -- Convert to Enum Eventually
@@ -190,9 +188,7 @@ class Transaction(DataclassDBInterface):
     # V3 Transaction Fields
 
     tip: int  # Not In Use
-    resource_bounds: dict[
-        str, int
-    ] | None  # Not in Use -- Will Eventually Enable Fee Market
+    resource_bounds: dict[str, int] | None  # Not in Use -- Will Eventually Enable Fee Market
     paymaster_data: list[bytes]
     account_deployment_data: list[bytes]  # Used in V3 transactions
 
@@ -204,9 +200,7 @@ class Transaction(DataclassDBInterface):
     # Optional Fields for Different Tx Types
     contract_address: bytes | None
     selector: bytes  # Selector used for decoding calldata
-    calldata: list[
-        bytes
-    ]  # Calldata for Invoke Txns, Constructor Calldata for Depoly Account
+    calldata: list[bytes]  # Calldata for Invoke Txns, Constructor Calldata for Depoly Account
     class_hash: bytes | None  # Deploy Account & Declare V2
 
     user_operations: list[DecodedOperation]

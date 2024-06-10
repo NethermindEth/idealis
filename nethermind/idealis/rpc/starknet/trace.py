@@ -31,9 +31,7 @@ async def trace_blocks(
             },
         ) as response:
             block_traces = await parse_eth_rpc_async_response(response)
-            logger.debug(
-                f"trace_blocks -> {block_number} returned {response.content.total_bytes} json bytes"
-            )
+            logger.debug(f"trace_blocks -> {block_number} returned {response.content.total_bytes} json bytes")
             try:
                 return unpack_trace_block_response(block_traces, block_number)
             except BaseException as e:

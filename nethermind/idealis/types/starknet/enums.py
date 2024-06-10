@@ -61,12 +61,8 @@ class TransactionStatus(Enum):
     received = "received"  # Finality - Received, execution - None
     rejected = "rejected"  # Finality - Received, execution - Rejected
     reverted = "reverted"  # Finality - Received, execution - Reverted
-    accepted_on_l2 = (
-        "accepted_on_l2"  # Finality - Accepted on L2, execution - Succeeded
-    )
-    accepted_on_l1 = (
-        "accepted_on_l1"  # Finality - Accepted on L1, execution - Succeeded
-    )
+    accepted_on_l2 = "accepted_on_l2"  # Finality - Accepted on L2, execution - Succeeded
+    accepted_on_l1 = "accepted_on_l1"  # Finality - Accepted on L1, execution - Succeeded
 
 
 class MessageStatus(Enum):

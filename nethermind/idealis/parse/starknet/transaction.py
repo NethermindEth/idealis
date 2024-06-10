@@ -25,24 +25,14 @@ def parse_transaction(
     tx_type = StarknetTxType(tx_data["type"])
     tx_version = hex_to_int(tx_data["version"])
 
-    class_hash = (
-        to_bytes(tx_data["class_hash"], pad=True) if "class_hash" in tx_data else None
-    )
+    class_hash = to_bytes(tx_data["class_hash"], pad=True) if "class_hash" in tx_data else None
     compiled_class_hash = (
-        to_bytes(tx_data["compiled_class_hash"], pad=True)
-        if "compiled_class_hash" in tx_data
-        else None
+        to_bytes(tx_data["compiled_class_hash"], pad=True) if "compiled_class_hash" in tx_data else None
     )
     contract_address_salt = (
-        to_bytes(tx_data["contract_address_salt"], pad=True)
-        if "contract_address_salt" in tx_data
-        else None
+        to_bytes(tx_data["contract_address_salt"], pad=True) if "contract_address_salt" in tx_data else None
     )
-    contract_class = (
-        to_bytes(tx_data["contract_class"], pad=True)
-        if "contract_class" in tx_data
-        else None
-    )
+    contract_class = to_bytes(tx_data["contract_class"], pad=True) if "contract_class" in tx_data else None
     if "contract_address" in tx_data:
         contract_address = to_bytes(tx_data["contract_address"], pad=True)
     elif "sender_address" in tx_data:
@@ -69,24 +59,16 @@ def parse_transaction(
         contract_address=contract_address,
         entry_point_selector=selector,
         calldata=[to_bytes(data) for data in tx_data.get("calldata", [])],
-        constructor_calldata=[
-            to_bytes(data) for data in tx_data.get("constructor_calldata", [])
-        ],
+        constructor_calldata=[to_bytes(data) for data in tx_data.get("constructor_calldata", [])],
         class_hash=class_hash,
         compiled_class_hash=compiled_class_hash,
         contract_address_salt=contract_address_salt,
         contract_class=contract_class,
         # V3 Transaction Fields
-        account_deployment_data=[
-            to_bytes(account_data)
-            for account_data in tx_data.get("account_deployment_data", [])
-        ],
+        account_deployment_data=[to_bytes(account_data) for account_data in tx_data.get("account_deployment_data", [])],
         tip=tx_data.get("tip", 0),
         resource_bounds=tx_data.get("resource_bounds", {}),
-        paymaster_data=[
-            to_bytes(paymaster_data)
-            for paymaster_data in tx_data.get("paymaster_data", [])
-        ],
+        paymaster_data=[to_bytes(paymaster_data) for paymaster_data in tx_data.get("paymaster_data", [])],
         fee_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
         nonce_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
         # Legacy Transaction Fields
@@ -98,9 +80,7 @@ def parse_transaction(
     )
 
 
-def tx_status_from_receipt(
-    execution_status: str | None, finality_status: str | None
-) -> TransactionStatus:
+def tx_status_from_receipt(execution_status: str | None, finality_status: str | None) -> TransactionStatus:
     match execution_status, finality_status:
         case None, "NOT_RECEIVED":
             return TransactionStatus.not_received
@@ -124,9 +104,7 @@ def parse_transaction_with_receipt(
     tx_data = tx_response["transaction"]
     tx_receipt = tx_response["receipt"]
 
-    parsed_transaction = parse_transaction(
-        tx_data, block_number, tx_index, block_timestamp
-    )
+    parsed_transaction = parse_transaction(tx_data, block_number, tx_index, block_timestamp)
 
     actual_fee = tx_receipt.get("actual_fee", {})
 
@@ -230,11 +208,7 @@ def parse_transaction_responses(
                 account_deployment_data=[],
                 contract_address=tx.contract_address,
                 selector=tx.entry_point_selector,
-                calldata=(
-                    tx.calldata
-                    if tx.type == StarknetTxType.invoke
-                    else tx.constructor_calldata
-                ),
+                calldata=(tx.calldata if tx.type == StarknetTxType.invoke else tx.constructor_calldata),
                 class_hash=tx.class_hash,
                 user_operations=[],
                 revert_error=None,

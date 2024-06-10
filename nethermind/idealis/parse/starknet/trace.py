@@ -53,9 +53,7 @@ def get_user_operations(traces: list[Trace] | None) -> list[DecodedOperation]:
             )
         ]
 
-    multicalls: list[Trace] = get_toplevel_child_traces(
-        traces, execute_trace.trace_address
-    )
+    multicalls: list[Trace] = get_toplevel_child_traces(traces, execute_trace.trace_address)
     multicalls = sorted(multicalls, key=lambda t: t.trace_address)
     decoded_ops = []
     for call in multicalls:
@@ -93,9 +91,7 @@ class ParsedBlockTrace(ParsedTransactionTrace):
 
     @classmethod
     def init(cls):
-        return ParsedBlockTrace(
-            **{field.name: list() for field in dataclass_fields(ParsedBlockTrace)}
-        )
+        return ParsedBlockTrace(**{field.name: list() for field in dataclass_fields(ParsedBlockTrace)})
 
     def add_transaction_trace(self, transaction_trace: ParsedTransactionTrace):
         for dataclass_field in dataclass_fields(transaction_trace):
@@ -119,9 +115,7 @@ class ParsedBlockTrace(ParsedTransactionTrace):
             block_field += add_data
 
     @classmethod
-    def from_block_traces(
-        cls, block_traces: Sequence["ParsedBlockTrace"]
-    ) -> "ParsedBlockTrace":
+    def from_block_traces(cls, block_traces: Sequence["ParsedBlockTrace"]) -> "ParsedBlockTrace":
         output_trace = block_traces[0]
         if output_trace.state_diff is None:
             output_trace.state_diff = []
@@ -174,24 +168,12 @@ def _get_root_call(
     """
 
     if "validate_invocation" in trace_root_json:
-        contract_address = to_bytes(
-            trace_root_json["validate_invocation"]["contract_address"], pad=True
-        )
-        selector = to_bytes(
-            trace_root_json["validate_invocation"]["entry_point_selector"], pad=True
-        )
-        calldata = [
-            to_bytes(c) for c in trace_root_json["validate_invocation"]["calldata"]
-        ]
-        caller_address = to_bytes(
-            trace_root_json["validate_invocation"]["caller_address"], pad=True
-        )
-        class_hash = to_bytes(
-            trace_root_json["validate_invocation"]["class_hash"], pad=True
-        )
-        entry_point_type = EntryPointType(
-            trace_root_json["validate_invocation"]["entry_point_type"]
-        )
+        contract_address = to_bytes(trace_root_json["validate_invocation"]["contract_address"], pad=True)
+        selector = to_bytes(trace_root_json["validate_invocation"]["entry_point_selector"], pad=True)
+        calldata = [to_bytes(c) for c in trace_root_json["validate_invocation"]["calldata"]]
+        caller_address = to_bytes(trace_root_json["validate_invocation"]["caller_address"], pad=True)
+        class_hash = to_bytes(trace_root_json["validate_invocation"]["class_hash"], pad=True)
+        entry_point_type = EntryPointType(trace_root_json["validate_invocation"]["entry_point_type"])
         call_type = TraceCallType(trace_root_json["validate_invocation"]["call_type"])
 
     else:
@@ -396,24 +378,16 @@ def parse_trace_call(
             block_number=root_call.block_number,
             tx_index=root_call.tx_index,
             trace_address=trace_path,
-            selector=to_bytes(
-                trace_call_dict.get("entry_point_selector", "0x0"), pad=True
-            ),
+            selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=True),
             calldata=[to_bytes(data) for data in trace_call_dict["calldata"]],
             result=[to_bytes(data) for data in trace_call_dict["result"]],
             caller_address=to_bytes(trace_call_dict["caller_address"], pad=True),
             class_hash=class_hash,
             error=None,
             entry_point_type=(
-                EntryPointType(trace_call_dict["entry_point_type"])
-                if "entry_point_type" in trace_call_dict
-                else None
+                EntryPointType(trace_call_dict["entry_point_type"]) if "entry_point_type" in trace_call_dict else None
             ),
-            call_type=(
-                TraceCallType(trace_call_dict["call_type"])
-                if "call_type" in trace_call_dict
-                else None
-            ),
+            call_type=(TraceCallType(trace_call_dict["call_type"]) if "call_type" in trace_call_dict else None),
             execution_resources=trace_call_dict["execution_resources"],
         )
     )

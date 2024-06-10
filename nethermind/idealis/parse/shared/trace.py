@@ -7,9 +7,7 @@ def get_root_trace(traces):
     """
     root_trace = [t for t in traces if t.trace_address == [0]]
     if len(root_trace) != 1:
-        raise ValueError(
-            f"Array of Traces has more than once trace with address of [0]: {root_trace}"
-        )
+        raise ValueError(f"Array of Traces has more than once trace with address of [0]: {root_trace}")
     return root_trace[0]
 
 

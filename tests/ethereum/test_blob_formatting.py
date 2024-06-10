@@ -1,6 +1,4 @@
-import pytest
-
-from nethermind.idealis.rpc.ethereum.consensus_parsing import (
+from nethermind.idealis.parse.ethereum.consensus import (
     parse_blob_sidecar_response,
     parse_signed_beacon_block,
 )
