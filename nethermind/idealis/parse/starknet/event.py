@@ -22,7 +22,8 @@ def filter_erc_20_transfers(events: list[Event]) -> list[ERC20Transfer]:
             value=event.decoded_params["value"],
         )
         for event in events
-        if event.keys[0] == TRANSFER_SIGNATURE
+        if len(event.keys) > 0
+        and event.keys[0] == TRANSFER_SIGNATURE
         and event.decoded_params is not None
         and "value" in event.decoded_params
         and "from_" in event.decoded_params
@@ -46,7 +47,8 @@ def filter_erc_721_transfers(events: list[Event]) -> list[ERC721Transfer]:
             token_id=event.decoded_params["tokenId"],
         )
         for event in events
-        if event.keys[0] == TRANSFER_SIGNATURE
+        if len(event.keys) > 0
+        and event.keys[0] == TRANSFER_SIGNATURE
         and event.decoded_params is not None
         and "tokenId" in event.decoded_params
         and "from_" in event.decoded_params
