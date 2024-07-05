@@ -518,7 +518,7 @@ async def update_contract_implementation(
     return contract_history
 
 
-def get_proxy_contracts(contract_implementation: ContractImplementation) -> list[bytes]:
+def get_implementation_proxy_felts(contract_implementation: ContractImplementation) -> list[bytes]:
     """
     Get a list of all proxy contracts used in the contract implementation history.  If there are no proxy classes,
     an empty list is returned.
@@ -529,14 +529,14 @@ def get_proxy_contracts(contract_implementation: ContractImplementation) -> list
     :param contract_implementation:
     :return:
     """
-    proxy_contracts = {
+    proxy_felts = {  # remove duplicates w/ set
         to_bytes(proxy)
         for root_class in contract_implementation.history.values()
         if isinstance(root_class, dict)
         for key, proxy in root_class.items()
         if key != "proxy_class"
     }
-    return list(proxy_contracts)
+    return list(proxy_felts)
 
 
 def get_decode_class(
