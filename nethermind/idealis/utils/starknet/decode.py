@@ -52,6 +52,7 @@ class PessimisticDecoder(DecodingDispatcher):
         try:
             class_abi = StarknetAbi.from_json(abi_json=class_abi, class_hash=class_hash, abi_name="")
             self.add_abi(class_abi)
+            return self.class_ids[class_id]
 
         except BaseException as e:
             logger.error(f"Error parsing ABI for class 0x{class_hash.hex()}...  {e}")
