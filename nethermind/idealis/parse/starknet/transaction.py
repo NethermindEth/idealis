@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from starknet_abi.utils import starknet_keccak
-
 from nethermind.idealis.types.starknet.core import (
     Event,
     Transaction,
@@ -14,6 +12,7 @@ from nethermind.idealis.types.starknet.enums import (
     TransactionStatus,
 )
 from nethermind.idealis.utils import hex_to_int, to_bytes
+from nethermind.starknet_abi.utils import starknet_keccak
 
 
 def parse_transaction(

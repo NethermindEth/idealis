@@ -1,7 +1,6 @@
-from starknet_abi.utils import starknet_keccak
-
 from nethermind.idealis.types.starknet.core import Event
 from nethermind.idealis.types.starknet.tokens import ERC20Transfer, ERC721Transfer
+from nethermind.starknet_abi.utils import starknet_keccak
 
 TRANSFER_SIGNATURE = starknet_keccak(b"Transfer")
 

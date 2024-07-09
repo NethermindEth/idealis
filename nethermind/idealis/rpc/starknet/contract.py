@@ -3,9 +3,6 @@ from bisect import bisect_right
 
 import requests
 from aiohttp import ClientSession
-from starknet_abi.abi_types import StarknetCoreType
-from starknet_abi.dispatch import DecodingDispatcher
-from starknet_abi.utils import starknet_keccak
 
 from nethermind.idealis.rpc.starknet.core import (
     _starknet_block_id,
@@ -13,6 +10,9 @@ from nethermind.idealis.rpc.starknet.core import (
 )
 from nethermind.idealis.types.starknet.contracts import ContractImplementation
 from nethermind.idealis.utils import to_bytes, to_hex
+from nethermind.starknet_abi.abi_types import StarknetCoreType
+from nethermind.starknet_abi.dispatch import DecodingDispatcher
+from nethermind.starknet_abi.utils import starknet_keccak
 
 GET_CAMEL_SELECTOR = starknet_keccak(b"getImplementation")
 GET_SNAKE_SELECTOR = starknet_keccak(b"get_implementation")

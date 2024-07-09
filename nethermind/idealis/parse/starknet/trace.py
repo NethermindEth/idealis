@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from typing import Any, Sequence
 
-from starknet_abi.utils import starknet_keccak
-
 from nethermind.idealis.parse.shared.trace import (
     get_root_trace,
     get_toplevel_child_traces,
@@ -16,6 +14,7 @@ from nethermind.idealis.types.starknet.core import (
 )
 from nethermind.idealis.types.starknet.enums import EntryPointType, TraceCallType
 from nethermind.idealis.utils import to_bytes
+from nethermind.starknet_abi.utils import starknet_keccak
 
 EXECUTE_SELECTOR = starknet_keccak(b"__execute__")
 

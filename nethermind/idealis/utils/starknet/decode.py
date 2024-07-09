@@ -1,9 +1,12 @@
 import json
 import logging
 
-from starknet_abi.dispatch import ClassDispatcher, DecodingDispatcher, StarknetAbi
-
 from nethermind.idealis.rpc.starknet import sync_get_class_abi
+from nethermind.starknet_abi.dispatch import (
+    ClassDispatcher,
+    DecodingDispatcher,
+    StarknetAbi,
+)
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("starknet").getChild("decoding")
