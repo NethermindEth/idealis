@@ -8,10 +8,10 @@ def parse_signed_beacon_block(signed_block_header: dict[str, Any]) -> BeaconBloc
     return BeaconBlock(
         slot=int(signed_block_header["message"]["slot"]),
         proposer_index=int(signed_block_header["message"]["proposer_index"]),
-        parent_root=to_bytes(signed_block_header["message"]["parent_root"]),
-        state_root=to_bytes(signed_block_header["message"]["state_root"]),
-        body_root=to_bytes(signed_block_header["message"]["body_root"]),
-        signature=to_bytes(signed_block_header["signature"]),
+        parent_root=to_bytes(signed_block_header["message"]["parent_root"], pad=32),
+        state_root=to_bytes(signed_block_header["message"]["state_root"], pad=32),
+        body_root=to_bytes(signed_block_header["message"]["body_root"], pad=32),
+        signature=to_bytes(signed_block_header["signature"], pad=32),
     )
 
 

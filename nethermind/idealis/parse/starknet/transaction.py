@@ -24,36 +24,34 @@ def parse_transaction(
     tx_type = StarknetTxType(tx_data["type"])
     tx_version = hex_to_int(tx_data["version"])
 
-    class_hash = to_bytes(tx_data["class_hash"], pad=True) if "class_hash" in tx_data else None
-    compiled_class_hash = (
-        to_bytes(tx_data["compiled_class_hash"], pad=True) if "compiled_class_hash" in tx_data else None
-    )
+    class_hash = to_bytes(tx_data["class_hash"], pad=32) if "class_hash" in tx_data else None
+    compiled_class_hash = to_bytes(tx_data["compiled_class_hash"], pad=32) if "compiled_class_hash" in tx_data else None
     contract_address_salt = (
-        to_bytes(tx_data["contract_address_salt"], pad=True) if "contract_address_salt" in tx_data else None
+        to_bytes(tx_data["contract_address_salt"], pad=32) if "contract_address_salt" in tx_data else None
     )
-    contract_class = to_bytes(tx_data["contract_class"], pad=True) if "contract_class" in tx_data else None
+    contract_class = to_bytes(tx_data["contract_class"], pad=32) if "contract_class" in tx_data else None
     if "contract_address" in tx_data:
-        contract_address = to_bytes(tx_data["contract_address"], pad=True)
+        contract_address = to_bytes(tx_data["contract_address"], pad=32)
     elif "sender_address" in tx_data:
-        contract_address = to_bytes(tx_data["sender_address"], pad=True)
+        contract_address = to_bytes(tx_data["sender_address"], pad=32)
     else:
         contract_address = None
 
     selector = (
-        to_bytes(tx_data["entry_point_selector"], pad=True)
+        to_bytes(tx_data["entry_point_selector"], pad=32)
         if "entry_point_selector" in tx_data
         else starknet_keccak(b"__execute__")
     )
 
     return TransactionResponse(
-        transaction_hash=to_bytes(tx_data["transaction_hash"], pad=True),
+        transaction_hash=to_bytes(tx_data["transaction_hash"], pad=32),
         block_number=block_number,
         transaction_index=tx_index,
         type=tx_type,
         nonce=hex_to_int(tx_data.get("nonce", "0x0")),
         timestamp=block_timestamp,
         version=tx_version,
-        signature=[to_bytes(sig, pad=True) for sig in tx_data.get("signature", [])],
+        signature=[to_bytes(sig, pad=32) for sig in tx_data.get("signature", [])],
         # Optional Tx Fields
         contract_address=contract_address,
         entry_point_selector=selector,
@@ -120,8 +118,8 @@ def parse_transaction_with_receipt(
             tx_index=tx_index,
             event_index=event_index,
             class_hash=b"",  # Event class hashes are unknown to tx receipts.  Use contract mapping
-            contract_address=to_bytes(event_dict["from_address"], pad=True),
-            keys=[to_bytes(k, pad=True) for k in event_dict["keys"]],
+            contract_address=to_bytes(event_dict["from_address"], pad=32),
+            keys=[to_bytes(k, pad=32) for k in event_dict["keys"]],
             data=[to_bytes(d) for d in event_dict["data"]],
         )
         for event_index, event_dict in enumerate(tx_receipt.get("events", []))

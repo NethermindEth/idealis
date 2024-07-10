@@ -145,7 +145,7 @@ async def get_implemented_class(
 
         if "error" in response_json:
             return None
-        return to_bytes(response_json["result"], pad=True)
+        return to_bytes(response_json["result"], pad=32)
 
 
 async def get_proxied_felt(
@@ -192,7 +192,7 @@ async def get_proxied_felt(
 
         if "error" in response_json:
             return None
-        return to_bytes(response_json["result"][0])
+        return to_bytes(response_json["result"][0], pad=32)
 
 
 async def get_contract_upgrade(
@@ -385,7 +385,7 @@ async def generate_contract_implementation(
         # runs once for each unique impl class of the contract
 
         # Check if the class has a proxy method, and the selector of this method
-        is_proxy, proxy_method = _is_proxy(class_decoder, to_bytes(class_hash))
+        is_proxy, proxy_method = _is_proxy(class_decoder, to_bytes(class_hash, pad=32))
 
         if not is_proxy:
             contract_impl_history.update({str(block): class_hash})
@@ -446,9 +446,7 @@ async def update_contract_implementation(
     latest_impl = contract_history.history[str(latest_impl_key)]
 
     latest_root_impl = (
-        to_bytes(latest_impl, pad=True)
-        if isinstance(latest_impl, str)
-        else to_bytes(latest_impl["proxy_class"], pad=True)
+        to_bytes(latest_impl, pad=32) if isinstance(latest_impl, str) else to_bytes(latest_impl["proxy_class"], pad=32)
     )
 
     if latest_root_impl != target_implementation:
@@ -481,9 +479,7 @@ async def update_contract_implementation(
         root_impl = contract_history.history[str(root_impl_block)]
 
         root_impl_class = (
-            to_bytes(root_impl, pad=True)
-            if isinstance(root_impl, str)
-            else to_bytes(root_impl["proxy_class"], pad=True)
+            to_bytes(root_impl, pad=32) if isinstance(root_impl, str) else to_bytes(root_impl["proxy_class"], pad=32)
         )
 
         is_proxy, proxy_method = _is_proxy(class_decoder, root_impl_class)
@@ -530,7 +526,7 @@ def get_implementation_proxy_felts(contract_implementation: ContractImplementati
     :return:
     """
     proxy_felts = {  # remove duplicates w/ set
-        to_bytes(proxy)
+        to_bytes(proxy, pad=32)
         for root_class in contract_implementation.history.values()
         if isinstance(root_class, dict)
         for key, proxy in root_class.items()
@@ -569,7 +565,7 @@ def get_decode_class(
     impl_class = contract_impl.history[str(impl_block)]
 
     if isinstance(impl_class, str):
-        return to_bytes(impl_class)
+        return to_bytes(impl_class, pad=32)
 
     # Handle proxy implementations
     proxy_block_history = sorted(int(b) for b in impl_class.keys() if b != "proxy_class")
@@ -580,7 +576,7 @@ def get_decode_class(
         else proxy_block_history[bisect_right(proxy_block_history, block_number) - 1]
     )
 
-    proxied_contract = to_bytes(impl_class[str(impl_block)])
+    proxied_contract = to_bytes(impl_class[str(impl_block)], pad=32)
 
     if proxied_contract not in contract_implementations:
         raise ValueError(f"Proxy contract 0x{proxied_contract.hex()} not present in implementation mapping")

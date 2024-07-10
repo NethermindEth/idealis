@@ -1,5 +1,4 @@
 import pytest
-from starknet_abi.utils import starknet_keccak
 
 from nethermind.idealis.rpc.starknet.contract import (
     generate_contract_implementation,
@@ -10,6 +9,7 @@ from nethermind.idealis.rpc.starknet.contract import (
     update_contract_implementation,
 )
 from nethermind.idealis.utils import to_bytes, to_hex
+from nethermind.starknet_abi.utils import starknet_keccak
 
 
 @pytest.mark.asyncio

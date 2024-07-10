@@ -15,7 +15,7 @@ def to_hex(hex_encode_str: bytes | str, pad: int | None = None) -> str:
     return hex_encode_str
 
 
-def to_bytes(hexstr: str, pad: bool = False) -> bytes:
+def to_bytes(hexstr: str, pad: int | None = None) -> bytes:
     """
     Convert a hex string to a bytestring.  If hexstring is '0x' prefixed, the prefix is removed.
 
@@ -24,7 +24,7 @@ def to_bytes(hexstr: str, pad: bool = False) -> bytes:
     :return:
     """
     if pad:
-        hexstr = zero_pad_hexstr(hexstr)
+        hexstr = zero_pad_hexstr(hexstr, pad)
 
     if hexstr.startswith("0x"):
         hexstr = hexstr[2:]

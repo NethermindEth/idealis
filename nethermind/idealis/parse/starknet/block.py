@@ -17,10 +17,10 @@ def parse_block_with_tx_receipts(
     block_num = response_json["block_number"]
     block_response = BlockResponse(
         block_number=block_num,
-        block_hash=to_bytes(response_json["block_hash"], pad=True),
-        parent_hash=to_bytes(response_json["parent_hash"], pad=True),
-        new_root=to_bytes(response_json["new_root"], pad=True),
-        sequencer_address=to_bytes(response_json["sequencer_address"], pad=True),
+        block_hash=to_bytes(response_json["block_hash"], pad=32),
+        parent_hash=to_bytes(response_json["parent_hash"], pad=32),
+        new_root=to_bytes(response_json["new_root"], pad=32),
+        sequencer_address=to_bytes(response_json["sequencer_address"], pad=32),
         timestamp=response_json["timestamp"],
         l1_gas_price_fri=hex_to_int(response_json["l1_gas_price"]["price_in_fri"]),
         l1_gas_price_wei=hex_to_int(response_json["l1_gas_price"]["price_in_wei"]),

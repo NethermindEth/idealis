@@ -1,8 +1,8 @@
 import pytest
-from starknet_abi.utils import starknet_keccak
 
 from nethermind.idealis.rpc.starknet.contract import _is_proxy
 from nethermind.idealis.utils import to_bytes
+from nethermind.starknet_abi.utils import starknet_keccak
 
 
 @pytest.mark.asyncio

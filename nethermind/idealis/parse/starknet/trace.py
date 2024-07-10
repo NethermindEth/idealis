@@ -167,11 +167,11 @@ def _get_root_call(
     """
 
     if "validate_invocation" in trace_root_json:
-        contract_address = to_bytes(trace_root_json["validate_invocation"]["contract_address"], pad=True)
-        selector = to_bytes(trace_root_json["validate_invocation"]["entry_point_selector"], pad=True)
+        contract_address = to_bytes(trace_root_json["validate_invocation"]["contract_address"], pad=32)
+        selector = to_bytes(trace_root_json["validate_invocation"]["entry_point_selector"], pad=32)
         calldata = [to_bytes(c) for c in trace_root_json["validate_invocation"]["calldata"]]
-        caller_address = to_bytes(trace_root_json["validate_invocation"]["caller_address"], pad=True)
-        class_hash = to_bytes(trace_root_json["validate_invocation"]["class_hash"], pad=True)
+        caller_address = to_bytes(trace_root_json["validate_invocation"]["caller_address"], pad=32)
+        class_hash = to_bytes(trace_root_json["validate_invocation"]["class_hash"], pad=32)
         entry_point_type = EntryPointType(trace_root_json["validate_invocation"]["entry_point_type"])
         call_type = TraceCallType(trace_root_json["validate_invocation"]["call_type"])
 
@@ -359,10 +359,10 @@ def parse_trace_call(
         return_traces += traces
         return_events += events
 
-    class_hash = to_bytes(trace_call_dict.get("class_hash", "0x0"), pad=True)
+    class_hash = to_bytes(trace_call_dict.get("class_hash", "0x0"), pad=32)
 
     # Does nothing if events array is empty
-    called_contract = to_bytes(trace_call_dict["contract_address"], pad=True)
+    called_contract = to_bytes(trace_call_dict["contract_address"], pad=32)
     return_events += parse_events(
         trace_call_dict=trace_call_dict["events"],
         contract_address=called_contract,
@@ -377,10 +377,10 @@ def parse_trace_call(
             block_number=root_call.block_number,
             tx_index=root_call.tx_index,
             trace_address=trace_path,
-            selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=True),
+            selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=32),
             calldata=[to_bytes(data) for data in trace_call_dict["calldata"]],
             result=[to_bytes(data) for data in trace_call_dict["result"]],
-            caller_address=to_bytes(trace_call_dict["caller_address"], pad=True),
+            caller_address=to_bytes(trace_call_dict["caller_address"], pad=32),
             class_hash=class_hash,
             error=None,
             entry_point_type=(
@@ -407,7 +407,7 @@ def parse_events(
             block_number=block_number,
             tx_index=tx_index,
             event_index=event["order"],
-            keys=[to_bytes(key) for key in event["keys"]],
+            keys=[to_bytes(key, pad=32) for key in event["keys"]],
             data=[to_bytes(data) for data in event["data"]],
             class_hash=class_hash,
         )

@@ -1,10 +1,10 @@
 import json
 
 import pytest_asyncio
-from starknet_abi.core import StarknetAbi
-from starknet_abi.dispatch import DecodingDispatcher
 
 from nethermind.idealis.rpc.starknet import get_class_abis
+from nethermind.starknet_abi.core import StarknetAbi
+from nethermind.starknet_abi.dispatch import DecodingDispatcher
 
 
 @pytest_asyncio.fixture(scope="function")

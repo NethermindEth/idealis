@@ -6,6 +6,7 @@ import requests
 from aiohttp import ClientSession
 
 from nethermind.idealis.parse.starknet.block import parse_block_with_tx_receipts
+from nethermind.idealis.parse.starknet.event import parse_event_response
 from nethermind.idealis.rpc.base.async_rpc import parse_eth_rpc_async_response
 from nethermind.idealis.types.starknet.core import (
     BlockResponse,
@@ -187,4 +188,39 @@ async def get_contract_impl_class(
         },
     ) as contract_response:
         contract_json = await parse_eth_rpc_async_response(contract_response)
-        return to_bytes(contract_json["class_hash"])
+        return to_bytes(contract_json["class_hash"], pad=32)
+
+
+async def get_events_for_contract(
+    contract_address: bytes,
+    event_keys: list[bytes],
+    from_block: int,
+    to_block: int,
+    rpc_url: str,
+    aiohttp_session: ClientSession,
+    page_size: int = 1024,
+) -> list[Event]:
+    async with aiohttp_session.post(
+        rpc_url,
+        json={
+            "jsonrpc": "2.0",
+            "method": "starknet_getEvents",
+            "params": {
+                "filter": {
+                    "from_block": _starknet_block_id(from_block),
+                    "to_block": _starknet_block_id(to_block),
+                    "address": to_hex(contract_address, pad=32),
+                    "keys": [
+                        [to_hex(key, pad=32) for key in event_keys]  # Key[0] searches event_selector...
+                        # Additional keys can search through indexed event keys?
+                        # TODO: Test & implement
+                    ],
+                    "continuation_token": f"{from_block}-0",
+                    "chunk_size": page_size,  # Max chunk size
+                }
+            },
+            "id": 1,
+        },
+    ) as events_response:
+        events_json = await parse_eth_rpc_async_response(events_response)
+        return parse_event_response(events_json)
