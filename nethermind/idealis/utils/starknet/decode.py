@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any
 
 from nethermind.idealis.rpc.starknet import sync_get_class_abi
 from nethermind.starknet_abi.dispatch import (
@@ -12,7 +13,7 @@ root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("starknet").getChild("decoding")
 
 
-def get_parsed_class(class_hash, rpc_url) -> StarknetAbi | None:
+def get_parsed_abi_json(class_hash, rpc_url) -> list[dict[str, Any]] | None:
     class_abi = sync_get_class_abi(class_hash, rpc_url)
     if isinstance(class_abi, str):
         try:
@@ -22,6 +23,14 @@ def get_parsed_class(class_hash, rpc_url) -> StarknetAbi | None:
             return None
     if class_abi is None or len(class_abi) == 0:
         logger.warning(f"Empty ABI for class 0x{class_hash.hex()}.  Skipping...")
+        return None
+
+    return class_abi
+
+
+def get_parsed_class(class_hash, rpc_url) -> StarknetAbi | None:
+    class_abi = get_parsed_abi_json(class_hash, rpc_url)
+    if class_abi is None:
         return None
     try:
         return StarknetAbi.from_json(abi_json=class_abi, class_hash=class_hash, abi_name="")
