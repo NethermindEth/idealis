@@ -427,3 +427,54 @@ def parse_state_diff(
         declared_classes=state_diff["declared_classes"],
         replaced_classes=state_diff["replaced_classes"],
     )
+
+
+def replace_delegate_calls(traces: list[Trace]) -> list[Trace]:
+    """
+    Given a sorted list of traces, replace call traces with their delegates where applicable,
+    correcting trace addresses when applicable
+
+    :param traces:
+    :return:
+    """
+    tx_grouped_traces = {}
+
+    for trace in traces:
+        if (trace.block_number, trace.tx_index) not in tx_grouped_traces:
+            tx_grouped_traces.update({(trace.block_number, trace.tx_index): []})
+
+        tx_grouped_traces[(trace.block_number, trace.tx_index)].append(trace)
+
+    output_traces = []
+
+    for tx_traces in tx_grouped_traces.values():
+        output_traces += replace_delegate_calls_for_tx(tx_traces)
+
+    return output_traces
+
+
+def replace_delegate_calls_for_tx(traces: list[Trace]) -> list[Trace]:
+
+    output_traces = []
+    trace_queue = traces.copy()
+
+    while len(trace_queue):
+        trace = trace_queue.pop(0)
+        if len(trace_queue):
+            next_trace = trace_queue[0]
+            if next_trace.call_type == TraceCallType.delegate and next_trace.trace_address[:-1] == trace.trace_address:
+                new_trace_address, trace_addr_len = trace.trace_address, len(next_trace.trace_address)
+
+                for child in [
+                    t for t
+                    in trace_queue
+                    if t.trace_address[:trace_addr_len] == next_trace.trace_address
+                ]:
+                    child.trace_address = new_trace_address + child.trace_address[trace_addr_len:]
+
+                trace = trace_queue.pop(0)
+                trace.trace_address = new_trace_address
+
+        output_traces.append(trace)
+
+    return output_traces

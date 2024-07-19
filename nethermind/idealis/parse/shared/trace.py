@@ -13,8 +13,9 @@ def get_root_trace(traces):
 
 def get_toplevel_child_traces(traces, parent_trace_address: list[int]) -> list:
     """
-    Returns
-    :param traces: List of Trace dataclasses posessing a trace_address member
+    Returns list of traces that are children of the parent_trace_address.
+
+    :param traces: List of Trace dataclasses with a trace_address member
     :param parent_trace_address:
     :return:
     """

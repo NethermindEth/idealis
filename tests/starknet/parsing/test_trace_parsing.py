@@ -4,6 +4,7 @@ from nethermind.idealis.parse.starknet.trace import (
     get_user_operations,
     unpack_trace_block_response,
     unpack_trace_response,
+    replace_delegate_calls,
 )
 from nethermind.idealis.types.starknet.core import Trace
 from nethermind.idealis.types.starknet.enums import EntryPointType, TraceCallType
@@ -43,6 +44,49 @@ def test_parse_block_traces():
     assert execute_traces[3].trace_address == [0, 0, 0]
     assert execute_traces[3].caller_address == to_bytes("0x1fc0e4b571077b7bd1f5847412059a32cf7276dff16a94fad46988b1641f198", pad=32)
     assert execute_traces[3].contract_address == to_bytes("0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", pad=32)
+
+
+def test_replace_trace_delegate_calls():
+    json_resp = load_rpc_response("starknet", "trace_block_480_000.json")
+    traces = unpack_trace_block_response(json_resp, 480_000)
+
+    execute_traces = [t for t in traces.execute_traces if t.tx_index == 1]
+    call_traces: list[Trace] = replace_delegate_calls(execute_traces)
+
+    print("\n--- Debugging Traces ---\n\n")
+    for trace in call_traces:
+        print(
+            f"{trace.trace_address} - {trace.call_type.value} - From 0x{trace.caller_address.hex()[:6]}... "
+            f"To 0x{trace.contract_address.hex()[:6]}...  Class 0x{trace.class_hash.hex()[:6]}...")
+
+    assert call_traces[0].trace_address == [0]
+    assert call_traces[0].class_hash == to_bytes("033434ad846cdd5f23eb73ff09fe6fddd568284a0fb7d1be20ee482f044dabe2")
+
+    assert call_traces[1].trace_address == [0, 0]
+    assert call_traces[1].class_hash == to_bytes("02760f25d5a4fb2bdde5f561fd0b44a3dee78c28903577d37d669939d97036a0")
+    assert call_traces[1].contract_address == to_bytes("049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
+    assert call_traces[1].caller_address == to_bytes("01fc0e4b571077b7bd1f5847412059a32cf7276dff16a94fad46988b1641f198")
+
+    assert call_traces[2].trace_address == [0, 1]
+    assert call_traces[2].class_hash == to_bytes("0409fc8faabc368e97d6bd8184e2b35fd4e010c5eb0308a08b116b7de1f6104b")
+
+    assert call_traces[3].trace_address == [0, 1, 0]
+    assert call_traces[3].class_hash == to_bytes("034a6f8fbc43c018805c0d73486f7c8e819c12116e6fbaf846e58b9b8b63c27e")
+
+    assert call_traces[4].trace_address == [0, 1, 1]
+    assert call_traces[4].class_hash == to_bytes("034a6f8fbc43c018805c0d73486f7c8e819c12116e6fbaf846e58b9b8b63c27e")
+
+    assert call_traces[5].trace_address == [0, 1, 2]
+    assert call_traces[5].class_hash == to_bytes("024f1332f6679ebd2af9d128ad6b3dd0ad34e877c077dbd9432badaffa791ed5")
+
+    assert call_traces[6].trace_address == [0, 1, 3]
+    assert call_traces[6].class_hash == to_bytes("02760f25d5a4fb2bdde5f561fd0b44a3dee78c28903577d37d669939d97036a0")
+
+    assert call_traces[-2].trace_address == [0, 2, 0]
+    assert call_traces[-2].class_hash == to_bytes("02760f25d5a4fb2bdde5f561fd0b44a3dee78c28903577d37d669939d97036a0")
+
+    assert call_traces[-1].trace_address == [0, 2, 1]
+    assert call_traces[-1].class_hash == to_bytes("02760f25d5a4fb2bdde5f561fd0b44a3dee78c28903577d37d669939d97036a0")
 
 
 def test_parse_v0_invoke_trace():
