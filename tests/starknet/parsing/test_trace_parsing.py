@@ -5,7 +5,8 @@ from nethermind.idealis.parse.starknet.trace import (
     unpack_trace_block_response,
     unpack_trace_response,
 )
-from nethermind.idealis.types.starknet.core import DecodedOperation, Trace
+from nethermind.idealis.types.starknet.core import Trace
+from nethermind.idealis.types.starknet.enums import EntryPointType, TraceCallType
 from nethermind.idealis.utils import to_bytes
 from tests.utils import load_rpc_response
 
@@ -20,6 +21,29 @@ def test_parse_v0_block_traces():
 def test_parse_block_traces():
     json_resp = load_rpc_response("starknet", "trace_block_480_000.json")
     traces = unpack_trace_block_response(json_resp, 480_000)
+
+    execute_traces = traces.execute_traces
+
+    print(len(execute_traces))
+
+    assert execute_traces[0].trace_address == [0]
+    assert execute_traces[0].error == "Insufficient fee token balance"
+
+    assert execute_traces[1].trace_address == [0]
+    assert execute_traces[1].caller_address == to_bytes("0x0", pad=32)
+    assert execute_traces[1].contract_address == to_bytes("0x1fc0e4b571077b7bd1f5847412059a32cf7276dff16a94fad46988b1641f198", pad=32)
+    assert execute_traces[1].call_type == TraceCallType.call
+    assert execute_traces[1].entry_point_type == EntryPointType.external
+
+    assert execute_traces[2].trace_address == [0, 0]
+    assert execute_traces[2].caller_address == to_bytes("0x0", pad=32)
+    assert execute_traces[2].contract_address == to_bytes("0x1fc0e4b571077b7bd1f5847412059a32cf7276dff16a94fad46988b1641f198", pad=32)
+    assert execute_traces[2].call_type == TraceCallType.delegate
+
+    assert execute_traces[3].trace_address == [0, 0, 0]
+    assert execute_traces[3].caller_address == to_bytes("0x1fc0e4b571077b7bd1f5847412059a32cf7276dff16a94fad46988b1641f198", pad=32)
+    assert execute_traces[3].contract_address == to_bytes("0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", pad=32)
+
 
 def test_parse_v0_invoke_trace():
     invoke_trace = {'trace_root': {'type': 'INVOKE', 'execute_invocation': {'contract_address': '0x10065efa1ff23687be422bc36805aef69452fcec19feb8129038d779fb68e83', 'calldata': ['0x37c50b49bcbb955cc8c9d97b7700c236ff7ae3272426d6d1fefe994869b3e9e', '0x1f4f5599bc27fe7e3d49f06cdf91a4e10d35c6d6447cba5fc8e2cb5c645da5'], 'caller_address': '0x0', 'result': [], 'calls': [], 'events': [], 'messages': [], 'execution_resources': {'steps': 25}}}, 'transaction_hash': '0x695cdfed585226f62b53411cd17f9dd068df65cbf2e2dd69c8b60125b4e5179'}
@@ -38,14 +62,14 @@ def test_parse_insufficient_fee_revert_trace():
     assert parsed_traces.execute_traces[0].trace_address == [0]
     assert parsed_traces.execute_traces[0].error == "Insufficient fee token balance"
 
-    assert parsed_traces.validate_traces[-1].trace_address == [0]
-    assert len(parsed_traces.validate_traces[-1].calldata) == 32
+    assert parsed_traces.validate_traces[0].trace_address == [0]
+    assert len(parsed_traces.validate_traces[0].calldata) == 32
     assert (
-        parsed_traces.validate_traces[-1].selector
+        parsed_traces.validate_traces[0].selector
         == to_bytes("0162da33a4585851fe8d3af3c2a9c60b557814e221e0d4f30ff0b2189d9c7775")
     )
     assert (
-        parsed_traces.validate_traces[-1].class_hash
+        parsed_traces.validate_traces[0].class_hash
         == to_bytes("0x03131fa018d520a037686ce3efddeab8f28895662f019ca3ca18a626650f7d1e")
     )
 

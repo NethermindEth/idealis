@@ -347,7 +347,7 @@ def parse_trace_call(
     list[Event],  # events
     # list[Message],  # messages
 ]:
-    return_traces, return_events = [], []
+    child_traces, child_events = [], []
 
     # Does nothing if calls array is empty
     for subcall_idx, subcall_dict in enumerate(trace_call_dict["calls"]):
@@ -356,42 +356,39 @@ def parse_trace_call(
             root_call=root_call,
             trace_path=trace_path + [subcall_idx],
         )
-        return_traces += traces
-        return_events += events
+        child_traces += traces
+        child_events += events
 
     class_hash = to_bytes(trace_call_dict.get("class_hash", "0x0"), pad=32)
 
     # Does nothing if events array is empty
     called_contract = to_bytes(trace_call_dict["contract_address"], pad=32)
-    return_events += parse_events(
+    call_events = parse_events(
         trace_call_dict=trace_call_dict["events"],
         contract_address=called_contract,
         block_number=root_call.block_number,
         tx_index=root_call.tx_index,
         class_hash=class_hash,
     )
-
-    return_traces.append(
-        Trace(
-            contract_address=called_contract,
-            block_number=root_call.block_number,
-            tx_index=root_call.tx_index,
-            trace_address=trace_path,
-            selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=32),
-            calldata=[to_bytes(data) for data in trace_call_dict["calldata"]],
-            result=[to_bytes(data) for data in trace_call_dict["result"]],
-            caller_address=to_bytes(trace_call_dict["caller_address"], pad=32),
-            class_hash=class_hash,
-            error=None,
-            entry_point_type=(
-                EntryPointType(trace_call_dict["entry_point_type"]) if "entry_point_type" in trace_call_dict else None
-            ),
-            call_type=(TraceCallType(trace_call_dict["call_type"]) if "call_type" in trace_call_dict else None),
-            execution_resources=trace_call_dict["execution_resources"],
-        )
+    call_trace = Trace(
+        contract_address=called_contract,
+        block_number=root_call.block_number,
+        tx_index=root_call.tx_index,
+        trace_address=trace_path,
+        selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=32),
+        calldata=[to_bytes(data) for data in trace_call_dict["calldata"]],
+        result=[to_bytes(data) for data in trace_call_dict["result"]],
+        caller_address=to_bytes(trace_call_dict["caller_address"], pad=32),
+        class_hash=class_hash,
+        error=None,
+        entry_point_type=(
+            EntryPointType(trace_call_dict["entry_point_type"]) if "entry_point_type" in trace_call_dict else None
+        ),
+        call_type=(TraceCallType(trace_call_dict["call_type"]) if "call_type" in trace_call_dict else None),
+        execution_resources=trace_call_dict["execution_resources"],
     )
 
-    return return_traces, return_events
+    return [call_trace] + child_traces, call_events + child_events
 
 
 def parse_events(
