@@ -240,7 +240,7 @@ def unpack_trace_response(
 
     if "state_diff" in trace_root:
         state_diff = parse_state_diff(
-            state_diff=trace_response["trace_root"]["state_diff"],
+            state_diff=trace_root["state_diff"],
             block_number=block_number,
             tx_hash=tx_hash,
         )
