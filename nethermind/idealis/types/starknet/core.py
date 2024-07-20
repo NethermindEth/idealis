@@ -143,7 +143,7 @@ class Message:
 @dataclass(slots=True)
 class StateDiff:
     block_number: int
-    tx_hash: str
+    tx_hash: bytes
 
     storage_diffs: list[dict[str, Any]]
     nonces: list[dict[str, Any]]

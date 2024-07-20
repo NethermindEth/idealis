@@ -205,7 +205,7 @@ def unpack_trace_response(
     trace_response: dict[str, Any],
     block_number: int,
     tx_index: int,
-    tx_hash: str | None = None,
+    tx_hash: bytes | None = None,
 ) -> ParsedTransactionTrace:
     """
     Unpack the trace response into a list of Trace dataclasses.
@@ -219,8 +219,9 @@ def unpack_trace_response(
     :return:
     """
     if tx_hash is None:
-        tx_hash = trace_response["transaction_hash"]
-    trace_root = trace_response["trace_root"]
+        tx_hash = to_bytes(trace_response["transaction_hash"], pad=32)
+
+    trace_root = trace_response["trace_root"] if "trace_root" in trace_response else trace_response
 
     root_call = _get_root_call(trace_root, block_number, tx_index)
 
@@ -415,7 +416,7 @@ def parse_events(
 def parse_state_diff(
     state_diff: dict[str, Any],
     block_number: int,
-    tx_hash: str,
+    tx_hash: bytes,
 ) -> StateDiff:
     return StateDiff(
         block_number=block_number,
@@ -454,7 +455,6 @@ def replace_delegate_calls(traces: list[Trace]) -> list[Trace]:
 
 
 def replace_delegate_calls_for_tx(traces: list[Trace]) -> list[Trace]:
-
     output_traces = []
     trace_queue = traces.copy()
 
@@ -465,11 +465,7 @@ def replace_delegate_calls_for_tx(traces: list[Trace]) -> list[Trace]:
             if next_trace.call_type == TraceCallType.delegate and next_trace.trace_address[:-1] == trace.trace_address:
                 new_trace_address, trace_addr_len = trace.trace_address, len(next_trace.trace_address)
 
-                for child in [
-                    t for t
-                    in trace_queue
-                    if t.trace_address[:trace_addr_len] == next_trace.trace_address
-                ]:
+                for child in [t for t in trace_queue if t.trace_address[:trace_addr_len] == next_trace.trace_address]:
                     child.trace_address = new_trace_address + child.trace_address[trace_addr_len:]
 
                 trace = trace_queue.pop(0)

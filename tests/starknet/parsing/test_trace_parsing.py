@@ -2,9 +2,9 @@ from nethermind.idealis.parse.shared.trace import get_toplevel_child_traces
 from nethermind.idealis.parse.starknet.trace import (
     get_execute_trace,
     get_user_operations,
+    replace_delegate_calls,
     unpack_trace_block_response,
     unpack_trace_response,
-    replace_delegate_calls,
 )
 from nethermind.idealis.types.starknet.core import Trace
 from nethermind.idealis.types.starknet.enums import EntryPointType, TraceCallType
@@ -27,6 +27,7 @@ def test_parse_block_traces():
 
     print(len(execute_traces))
 
+    # https://voyager.online/tx/0x1eaebf1a9ff736c78d07b4948ad446ea179351d39b4ddcd9cc68a027fc23683#overview
     assert execute_traces[0].trace_address == [0]
     assert execute_traces[0].error == "Insufficient fee token balance"
 
