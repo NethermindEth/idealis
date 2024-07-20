@@ -1,4 +1,7 @@
-from nethermind.idealis.parse.shared.trace import get_toplevel_child_traces
+from nethermind.idealis.parse.shared.trace import (
+    get_toplevel_child_traces,
+    group_traces,
+)
 from nethermind.idealis.parse.starknet.trace import (
     get_execute_trace,
     get_user_operations,
@@ -24,8 +27,6 @@ def test_parse_block_traces():
     traces = unpack_trace_block_response(json_resp, 480_000)
 
     execute_traces = traces.execute_traces
-
-    print(len(execute_traces))
 
     # https://voyager.online/tx/0x1eaebf1a9ff736c78d07b4948ad446ea179351d39b4ddcd9cc68a027fc23683#overview
     assert execute_traces[0].trace_address == [0]
@@ -53,12 +54,6 @@ def test_replace_trace_delegate_calls():
 
     execute_traces = [t for t in traces.execute_traces if t.tx_index == 1]
     call_traces: list[Trace] = replace_delegate_calls(execute_traces)
-
-    print("\n--- Debugging Traces ---\n\n")
-    for trace in call_traces:
-        print(
-            f"{trace.trace_address} - {trace.call_type.value} - From 0x{trace.caller_address.hex()[:6]}... "
-            f"To 0x{trace.contract_address.hex()[:6]}...  Class 0x{trace.class_hash.hex()[:6]}...")
 
     assert call_traces[0].trace_address == [0]
     assert call_traces[0].class_hash == to_bytes("033434ad846cdd5f23eb73ff09fe6fddd568284a0fb7d1be20ee482f044dabe2")
@@ -88,6 +83,35 @@ def test_replace_trace_delegate_calls():
 
     assert call_traces[-1].trace_address == [0, 2, 1]
     assert call_traces[-1].class_hash == to_bytes("02760f25d5a4fb2bdde5f561fd0b44a3dee78c28903577d37d669939d97036a0")
+
+
+def test_group_traces():
+    json_resp = load_rpc_response("starknet", "trace_block_480_000.json")
+    traces = unpack_trace_block_response(json_resp, 480_000)
+
+    execute_traces = [t for t in traces.execute_traces if t.tx_index == 5]
+    call_traces = replace_delegate_calls(execute_traces)
+
+    grouped_calls = group_traces(call_traces)
+
+    assert isinstance(grouped_calls, tuple)
+    assert len(grouped_calls) == 2
+
+    root_call, user_ops = grouped_calls
+
+    # https://voyager.online/tx/0x336084fece7d2223147251b1078c7846e1ea5905f4fd0cb4729aad1105b646c#internalCalls
+    assert root_call.trace_address == [0]
+    assert root_call.contract_address == to_bytes("0x047e4bae9c0facbc11d0797aadc9d022210beeee0b5659e80e58308a8c2b0c4e")
+
+    assert len(user_ops) == 2
+
+    uop_0, uop_0_children = user_ops[0]  # approve() USDC
+    assert uop_0.trace_address == [0, 0]
+    assert uop_0_children is None
+
+    uop_1, uop_1_children = user_ops[1]  # swapExactTokensForTokens
+    assert uop_1.trace_address == [0, 1]
+    assert len(uop_1_children) == 3
 
 
 def test_parse_v0_invoke_trace():
