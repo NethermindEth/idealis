@@ -11,12 +11,9 @@ from nethermind.idealis.utils import hex_to_int, to_bytes
 from .transaction import parse_transaction_with_receipt
 
 
-def parse_block_with_tx_receipts(
-    response_json: dict[str, Any]
-) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
-    block_num = response_json["block_number"]
-    block_response = BlockResponse(
-        block_number=block_num,
+def parse_block(response_json: dict[str, Any]) -> BlockResponse:
+    return BlockResponse(
+        block_number=response_json["block_number"],
         block_hash=to_bytes(response_json["block_hash"], pad=32),
         parent_hash=to_bytes(response_json["parent_hash"], pad=32),
         new_root=to_bytes(response_json["new_root"], pad=32),
@@ -32,9 +29,22 @@ def parse_block_with_tx_receipts(
         total_fee=0,
     )
 
+
+def parse_block_with_tx_receipts(
+    response_json: dict[str, Any]
+) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
+
+    block_response = parse_block(response_json)
+
     transactions, all_events = [], []
     for tx_idx, tx in enumerate(response_json["transactions"]):
-        tx_response, events = parse_transaction_with_receipt(tx, block_num, tx_idx, block_response.timestamp)
+        tx_response, events = parse_transaction_with_receipt(
+            tx,
+            block_response.block_number,
+            tx_idx,
+            block_response.timestamp
+        )
+
         transactions.append(tx_response)
         all_events.extend(events)
 
