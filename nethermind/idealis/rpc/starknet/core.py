@@ -5,6 +5,7 @@ from typing import Any, Sequence
 import requests
 from aiohttp import ClientSession
 
+from nethermind.idealis.exceptions import RPCError
 from nethermind.idealis.parse.starknet.block import (
     parse_block,
     parse_block_with_tx_receipts,
@@ -49,10 +50,9 @@ async def get_current_block(aiohttp_session: ClientSession, json_rpc: str) -> in
             "id": 1,
         },
     ) as latest_block_resp:
-        response_json = await latest_block_resp.json()
-        latest_block_resp.release()
+        response_json = await parse_async_rpc_response(latest_block_resp)
 
-        return response_json["result"]
+        return int(response_json)
 
 
 def sync_get_current_block(rpc_url) -> int:
@@ -68,8 +68,11 @@ def sync_get_current_block(rpc_url) -> int:
         },
         timeout=20,
     )
-
-    return block_response.json()["result"]
+    response_json = block_response.json()
+    try:
+        return int(response_json["result"])
+    except KeyError:
+        raise RPCError(f"Error fetching current block number for Starknet: {response_json}")
 
 
 async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSession) -> Sequence[BlockResponse]:
@@ -150,10 +153,14 @@ def sync_get_class_abi(class_hash: bytes, rpc_url: str) -> list[dict[str, Any]] 
     )
 
     class_json = class_response.json()
+
     if "error" in class_json:
         return None
 
-    return class_json["result"]["abi"]
+    try:
+        return class_json["result"]["abi"]
+    except KeyError:
+        raise RPCError(f"Error fetching Starknet class ABI for {to_hex(class_hash)}: {class_json}")
 
 
 async def get_class_abis(
@@ -171,6 +178,7 @@ async def get_class_abis(
                 "id": 1,
             },
         ) as class_response:
+            # Handle this manually since an 'error' should be returned as None instead of raising Exception
             response_json = await class_response.json()  # Async read response bytes
             class_response.release()  # Release the connection back to the pool, keeping TCP conn alive
 
