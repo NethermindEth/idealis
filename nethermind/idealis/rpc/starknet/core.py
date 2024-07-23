@@ -5,7 +5,10 @@ from typing import Any, Sequence
 import requests
 from aiohttp import ClientSession
 
-from nethermind.idealis.parse.starknet.block import parse_block_with_tx_receipts, parse_block
+from nethermind.idealis.parse.starknet.block import (
+    parse_block,
+    parse_block_with_tx_receipts,
+)
 from nethermind.idealis.parse.starknet.event import parse_event_response
 from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
 from nethermind.idealis.types.starknet.core import (
@@ -69,9 +72,7 @@ def sync_get_current_block(rpc_url) -> int:
     return block_response.json()["result"]
 
 
-async def get_blocks(
-    blocks: list[int], rpc_url: str, aiohttp_session: ClientSession
-) -> Sequence[BlockResponse]:
+async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSession) -> Sequence[BlockResponse]:
     logger.info(f"Async Requesting {len(blocks)} Blocks")
 
     async def _get_block(block_number: int) -> BlockResponse:

@@ -45,12 +45,6 @@ def create_aiohttp_session(
     )
 
 
-def handle_rpc_error(response_json: dict[str, Any]) -> None:
-    if "error" in response_json.keys():
-        logger.debug(f"Error in RPC response: {response_json}")
-        raise RPCError("Error in RPC response: " + response_json["error"]["message"])
-
-
 async def parse_async_rpc_response(
     response: ClientResponse,
 ) -> Any:
@@ -58,12 +52,22 @@ async def parse_async_rpc_response(
         response_json = await response.json()  # Async read response bytes
         response.release()  # Release the connection back to the pool, keeping TCP conn alive
 
-        handle_rpc_error(response_json)
         try:
             return response_json["result"]
         except KeyError:
-            logger.warning(f"No Result Key in RPC Response: {response_json}")
-            raise RPCError("No Result in RPC Response")
+            if "error" in response_json.keys():
+                logger.error(f"Error in RPC response: {response_json}")
+                raise RPCError("Error in RPC response: " + response_json["error"])
+
+            if "message" in response_json.keys():
+                if "rate limit" in response_json["message"] or "rate-limit" in response_json["message"]:
+                    logger.warning(f"Rate Limits Exceeded for RPC {response.url} -- {response_json['message']}")
+
+                    raise RPCRateLimitError(
+                        f"Rate Limits Exceeded for RPC {response.url} -- {response_json['message']}"
+                    )
+
+            raise RPCError(f"Error for RPC {response.url} -- Response: {response_json}")
 
     except ContentTypeError:
         match response.status:

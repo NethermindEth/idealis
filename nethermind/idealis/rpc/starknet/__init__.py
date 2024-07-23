@@ -13,7 +13,4 @@ from .core import (
     sync_get_class_abi,
     sync_get_current_block,
 )
-from .trace import (
-    trace_blocks,
-    trace_transaction
-)
+from .trace import trace_blocks, trace_transaction

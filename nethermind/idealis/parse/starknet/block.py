@@ -33,16 +33,12 @@ def parse_block(response_json: dict[str, Any]) -> BlockResponse:
 def parse_block_with_tx_receipts(
     response_json: dict[str, Any]
 ) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
-
     block_response = parse_block(response_json)
 
     transactions, all_events = [], []
     for tx_idx, tx in enumerate(response_json["transactions"]):
         tx_response, events = parse_transaction_with_receipt(
-            tx,
-            block_response.block_number,
-            tx_idx,
-            block_response.timestamp
+            tx, block_response.block_number, tx_idx, block_response.timestamp
         )
 
         transactions.append(tx_response)
