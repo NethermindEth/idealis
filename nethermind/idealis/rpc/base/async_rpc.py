@@ -15,7 +15,7 @@ from nethermind.idealis.exceptions import (
 )
 
 root_logger = logging.getLogger("nethermind")
-logger = root_logger.getChild("rpc")
+logger = root_logger.getChild("idealis").getChild("rpc")
 
 DEFAULT_HEADERS = {"Content-Type": "application/json"}
 
@@ -56,16 +56,11 @@ async def parse_async_rpc_response(
             return response_json["result"]
         except KeyError:
             if "error" in response_json.keys():
-                logger.error(f"Error in RPC response: {response_json}")
                 raise RPCError("Error in RPC response: " + response_json["error"])
 
             if "message" in response_json.keys():
                 if "rate limit" in response_json["message"] or "rate-limit" in response_json["message"]:
-                    logger.warning(f"Rate Limits Exceeded for RPC {response.url} -- {response_json['message']}")
-
-                    raise RPCRateLimitError(
-                        f"Rate Limits Exceeded for RPC {response.url} -- {response_json['message']}"
-                    )
+                    raise RPCRateLimitError(f"Rate Limits Exceeded for RPC {response.url}")
 
             raise RPCError(f"Error for RPC {response.url} -- Response: {response_json}")
 
