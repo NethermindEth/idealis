@@ -51,7 +51,7 @@ def handle_rpc_error(response_json: dict[str, Any]) -> None:
         raise RPCError("Error in RPC response: " + response_json["error"]["message"])
 
 
-async def parse_eth_rpc_async_response(
+async def parse_async_rpc_response(
     response: ClientResponse,
 ) -> Any:
     try:
@@ -59,7 +59,11 @@ async def parse_eth_rpc_async_response(
         response.release()  # Release the connection back to the pool, keeping TCP conn alive
 
         handle_rpc_error(response_json)
-        return response_json["result"]
+        try:
+            return response_json["result"]
+        except KeyError:
+            logger.warning(f"No Result Key in RPC Response: {response_json}")
+            raise RPCError("No Result in RPC Response")
 
     except ContentTypeError:
         match response.status:

@@ -7,7 +7,7 @@ from aiohttp import ClientSession
 
 from nethermind.idealis.parse.starknet.block import parse_block_with_tx_receipts, parse_block
 from nethermind.idealis.parse.starknet.event import parse_event_response
-from nethermind.idealis.rpc.base.async_rpc import parse_eth_rpc_async_response
+from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
 from nethermind.idealis.types.starknet.core import (
     BlockResponse,
     Event,
@@ -84,7 +84,7 @@ async def get_blocks(
                 "id": 1,
             },
         ) as block_response:
-            block_json = await parse_eth_rpc_async_response(block_response)
+            block_json = await parse_async_rpc_response(block_response)
             return parse_block(block_json)
 
     response_data = await asyncio.gather(*[_get_block(block) for block in blocks])
@@ -108,7 +108,7 @@ async def get_blocks_with_txns(
                 "id": 1,
             },
         ) as block_response:
-            block_json = await parse_eth_rpc_async_response(block_response)
+            block_json = await parse_async_rpc_response(block_response)
             logger.debug(
                 f"get_blocks_with_txns -> {block_number} returned {block_response.content.total_bytes} json bytes"
             )
@@ -209,7 +209,7 @@ async def get_contract_impl_class(
             "id": 1,
         },
     ) as contract_response:
-        contract_json = await parse_eth_rpc_async_response(contract_response)
+        contract_json = await parse_async_rpc_response(contract_response)
         return to_bytes(contract_json["class_hash"], pad=32)
 
 
@@ -244,5 +244,5 @@ async def get_events_for_contract(
             "id": 1,
         },
     ) as events_response:
-        events_json = await parse_eth_rpc_async_response(events_response)
+        events_json = await parse_async_rpc_response(events_response)
         return parse_event_response(events_json)

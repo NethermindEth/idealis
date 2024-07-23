@@ -9,7 +9,7 @@ from nethermind.idealis.parse.starknet.trace import (
     unpack_trace_block_response,
     unpack_trace_response,
 )
-from nethermind.idealis.rpc.base.async_rpc import parse_eth_rpc_async_response
+from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
 from nethermind.idealis.utils import to_hex
 from nethermind.idealis.utils.formatting import pprint_hash
 
@@ -34,7 +34,7 @@ async def trace_blocks(
                 "params": {"block_id": {"block_number": block_number}},
             },
         ) as response:
-            block_traces = await parse_eth_rpc_async_response(response)
+            block_traces = await parse_async_rpc_response(response)
             logger.debug(f"trace_blocks -> {block_number} returned {response.content.total_bytes} json bytes")
             try:
                 return unpack_trace_block_response(block_traces, block_number)
@@ -65,7 +65,7 @@ async def trace_transaction(
             "params": {"transaction_hash": to_hex(transaction_hash, pad=32)},
         },
     ) as response:
-        tx_trace = await parse_eth_rpc_async_response(response)
+        tx_trace = await parse_async_rpc_response(response)
         logger.debug(
             f"trace_transaction -> {pprint_hash(transaction_hash)} returned {response.content.total_bytes} json bytes"
         )

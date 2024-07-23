@@ -4,7 +4,7 @@ from typing import Any
 import requests
 from aiohttp import ClientSession
 
-from nethermind.idealis.rpc.base.async_rpc import parse_eth_rpc_async_response
+from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
 from nethermind.idealis.rpc.ethereum.trace_parsing import (
     unpack_debug_trace_block_response,
     unpack_trace_block_response,
@@ -55,7 +55,7 @@ async def trace_block(
             "params": [block_number],
         },
     ) as response:
-        block_traces = await parse_eth_rpc_async_response(response)
+        block_traces = await parse_async_rpc_response(response)
         logger.debug(f"Async POST -- trace_block {block_number} returned {response.content_length} bytes")
 
         return unpack_trace_block_response(block_traces)
@@ -77,7 +77,7 @@ async def debug_trace_block(
             "params": [block_number],
         },
     ) as response:
-        block_traces = await parse_eth_rpc_async_response(response)
+        block_traces = await parse_async_rpc_response(response)
         logger.debug(f"Finished Reading HTTP Response Bytes & Decoding JSON for Block {block_number} Debug Traces")
 
         return unpack_debug_trace_block_response(block_traces, block_number)
