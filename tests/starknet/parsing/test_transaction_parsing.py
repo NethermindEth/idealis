@@ -1,7 +1,10 @@
 # fmt: off
 import pytest
 
-from nethermind.idealis.parse.starknet.transaction import parse_transaction
+from nethermind.idealis.parse.starknet.transaction import (
+    parse_transaction,
+    parse_transaction_responses,
+)
 from nethermind.idealis.types.starknet.enums import StarknetTxType
 
 
@@ -13,8 +16,8 @@ def test_version_0_invoke():
 def test_version_1_invoke():
     tx_json = {'transaction_hash': '0x1139643045af8ad540f84685aad59115073f7aae58b1c46fd57cffdef438657', 'type': 'INVOKE', 'version': '0x1', 'nonce': '0x45', 'max_fee': '0x8bb8f74723a7', 'sender_address': '0x2d46760b9253183269588e29123d5cb5770bbde47049d3369be3a21fb9a1f1c', 'signature': ['0x1', '0x5fa4f83501d55b68af607f8f0e16848052738d856d511c2ab25bfbb7c28b85c', '0x26d858383b0ed587d031d59007917a8d1df018cab20786f3456507b808c0f18'], 'calldata': ['0x1', '0x7c2e1e733f28daa23e78be3a4f6c724c0ab06af65f6a95b5e0545215f1abc1b', '0x3e8cfd4725c1e28fa4a6e3e468b4fcf75367166b850ac5f04e33ec843e82c1', '0x4', '0x2d46760b9253183269588e29123d5cb5770bbde47049d3369be3a21fb9a1f1c', '0x2d46760b9253183269588e29123d5cb5770bbde47049d3369be3a21fb9a1f1c', '0x1043d272d8b0538000', '0x0']}
 
-    parsed_tx = parse_transaction(tx_json, 100, 0, 1234)
-
+    tx_response = parse_transaction(tx_json, 100, 0, 1234)
+    parsed_tx = parse_transaction_responses([tx_response])[0]
 
 def test_version_3_invoke():
     tx_json = {'transaction_hash': '0x7c04fd44c3f66121ab430e369d57e59c73809cf235dd182a3ae6342576dfdb2', 'type': 'INVOKE', 'version': '0x3', 'nonce': '0x16', 'sender_address': '0x1b9863ced0b4a85c77d65c66e81f84e1c4d41161a2ff14f36ec50f59af21d3f', 'signature': ['0xfc430e59f3d9a2f7e1879a5970dce226de2bc27229be569a357d0fa368b701', '0x63c8644310425c15bb0d0a9c9468fabe995709cca4a35250b8966dc712db62'], 'calldata': ['0x5', '0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7', '0x83afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e', '0x3', '0x2e0af29598b407c8716b17f6d2795eca1b471413fa03fb145a5e33722184067', '0xe4c0d39f63dac', '0x0', '0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8', '0x83afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e', '0x3', '0x2e0af29598b407c8716b17f6d2795eca1b471413fa03fb145a5e33722184067', '0xb71b00', '0x0', '0x2e0af29598b407c8716b17f6d2795eca1b471413fa03fb145a5e33722184067', '0x38c3244e92da3bec5e017783c62779e3fd5d13827570dc093ab2a55f16d41b9', '0xa', '0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7', '0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8', '0x20c49ba5e353f80000000000000000', '0x3e8', '0x0', '0x12afef8', '0x1', '0x12a81f8', '0x1', '0x1792a6fec705', '0x2e0af29598b407c8716b17f6d2795eca1b471413fa03fb145a5e33722184067', '0x292f3f4df7749c2ae1fdc3379303c2e6caa9bbc3033ee67709fde5b77f65836', '0x1', '0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7', '0x2e0af29598b407c8716b17f6d2795eca1b471413fa03fb145a5e33722184067', '0x292f3f4df7749c2ae1fdc3379303c2e6caa9bbc3033ee67709fde5b77f65836', '0x1', '0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'], 'resource_bounds': {'l1_gas': {'max_amount': '0x192', 'max_price_per_unit': '0x4892a4a62bba'}, 'l2_gas': {'max_amount': '0x0', 'max_price_per_unit': '0x0'}}, 'tip': '0x0', 'paymaster_data': [], 'account_deployment_data': [], 'nonce_data_availability_mode': 'L1', 'fee_data_availability_mode': 'L1'}

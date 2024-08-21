@@ -133,7 +133,7 @@ def parse_trace_call(
 
 def unpack_trace_block_response(
     trace_response: list[dict[str, Any]],
-) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[RewardTraceResponse], list[SuicideTraceResponse],]:
+) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[RewardTraceResponse], list[SuicideTraceResponse]]:
     """
     Unpack the trace_block RPC Response into a list of TraceResponse dataclasses.
     :param trace_response: JSON decoded Trace response.

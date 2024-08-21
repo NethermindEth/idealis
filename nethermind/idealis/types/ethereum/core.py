@@ -7,7 +7,7 @@ from .enums import TraceCallType, TraceError, TraceType
 
 
 @dataclass(slots=True)
-class BlockResponse:
+class Block:
     block_number: int
     block_timestamp: int
     base_fee_per_gas: int  # manually set during block instantiation
@@ -98,11 +98,17 @@ class Transaction:
     block_number: int
     transaction_hash: bytes
     transaction_index: int
-    miner_address: bytes
-    coinbase_transfer: int
-    base_fee_per_gas: int
+    nonce: int
+    type: int
+
+    value: int
     gas_price: int
-    gas_price_with_coinbase_transfer: int
+    gas_supplied: int
     gas_used: int
-    transaction_to_address: Optional[bytes]
-    transaction_from_address: Optional[bytes]
+    max_priority_fee: int
+    max_fee: int
+
+    to_address: Optional[bytes]
+    from_address: Optional[bytes]
+
+    input: bytes

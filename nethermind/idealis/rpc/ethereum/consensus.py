@@ -5,12 +5,10 @@ import requests
 from aiohttp import ClientSession
 
 from nethermind.idealis.exceptions import BlockNotFoundError
+from nethermind.idealis.parse.ethereum.consensus import parse_blob_sidecar_response
 from nethermind.idealis.rpc.base.async_rpc import (
     parse_beacon_api_async_response,
     parse_beacon_api_response,
-)
-from nethermind.idealis.rpc.ethereum.consensus_parsing import (
-    parse_blob_sidecar_response,
 )
 from nethermind.idealis.types.ethereum.consensus import BeaconBlock, BlobSidecar
 

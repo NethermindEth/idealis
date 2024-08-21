@@ -23,7 +23,7 @@ class BlockResponse(DataclassDBInterface):
 
     block_hash: bytes
     parent_hash: bytes
-    new_root: bytes
+    state_root: bytes
     sequencer_address: bytes
     l1_gas_price_wei: int
     l1_gas_price_fri: int

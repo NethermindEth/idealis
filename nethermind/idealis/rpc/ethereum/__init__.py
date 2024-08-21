@@ -6,6 +6,7 @@ from .consensus import (
 )
 from .execution import (
     debug_trace_block,
+    get_blocks,
     get_current_block,
     sync_get_current_block,
     trace_block,

@@ -1,14 +1,17 @@
+import asyncio
 import logging
-from typing import Any
+from typing import Any, Sequence
 
 import requests
 from aiohttp import ClientSession
 
-from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
-from nethermind.idealis.rpc.ethereum.trace_parsing import (
+from nethermind.idealis.parse.ethereum.execution import parse_get_block_response
+from nethermind.idealis.parse.ethereum.trace import (
     unpack_debug_trace_block_response,
     unpack_trace_block_response,
 )
+from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
+from nethermind.idealis.types.ethereum import Block, Transaction
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("rpc").getChild("ethereum").getChild("execution")
@@ -37,6 +40,34 @@ def sync_get_current_block(rpc_url: str) -> int:
     response = requests.post(**current_block_req(rpc_url))
     logger.debug(f"Sync POST Request -- Current Block Number: {response.json()}")
     return int(response.json()["result"], 16)
+
+
+async def get_blocks(
+    blocks: list[int], rpc_url: str, aiohttp_session: ClientSession, full_transactions: bool = True
+) -> tuple[Sequence[Block], Sequence[Transaction]]:
+    logger.debug(f"Async POST -- get {len(blocks)} blocks")
+
+    async def _get_block(num: int) -> tuple[Block, list[Transaction]]:
+        async with aiohttp_session.post(
+            url=rpc_url,
+            json={
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "eth_getBlockByNumber",
+                "params": [hex(num), full_transactions],
+            },
+        ) as response:
+            block_json = await parse_async_rpc_response(response)
+            logger.debug(f"Async POST -- get {len(blocks)} blocks returned {response.content_length} bytes")
+
+            return parse_get_block_response(block_json)
+
+    blocks = await asyncio.gather(*[_get_block(block) for block in blocks])
+    output_blocks, output_transactions = [], []
+    for block, transactions in blocks:
+        output_blocks.append(block)
+        output_transactions.extend(transactions)
+    return output_blocks, output_transactions
 
 
 async def trace_block(

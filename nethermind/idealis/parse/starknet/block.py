@@ -16,7 +16,7 @@ def parse_block(response_json: dict[str, Any]) -> BlockResponse:
         block_number=response_json["block_number"],
         block_hash=to_bytes(response_json["block_hash"], pad=32),
         parent_hash=to_bytes(response_json["parent_hash"], pad=32),
-        new_root=to_bytes(response_json["new_root"], pad=32),
+        state_root=to_bytes(response_json["new_root"], pad=32),
         sequencer_address=to_bytes(response_json["sequencer_address"], pad=32),
         timestamp=response_json["timestamp"],
         l1_gas_price_fri=hex_to_int(response_json["l1_gas_price"]["price_in_fri"]),
