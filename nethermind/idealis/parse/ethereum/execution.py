@@ -26,8 +26,8 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
                 gas_used=-1,
                 max_priority_fee=hex_to_int(transaction.get("maxPriorityFeePerGas", "0x0")),
                 max_fee=hex_to_int(transaction.get("maxFeePerGas", "0x0")),
-                to_address=to_bytes(transaction["to"], pad=20),
-                from_address=to_bytes(transaction["from"], pad=20),
+                to_address=to_bytes(transaction["to"], pad=20) if transaction["to"] else None,
+                from_address=to_bytes(transaction["from"], pad=20) if transaction["from"] else None,
                 input=to_bytes(transaction["input"]),
             )
         )
