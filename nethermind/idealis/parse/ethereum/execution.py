@@ -29,6 +29,8 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
                 to_address=to_bytes(transaction["to"], pad=20) if transaction["to"] else None,
                 from_address=to_bytes(transaction["from"], pad=20) if transaction["from"] else None,
                 input=to_bytes(transaction["input"]),
+                decoded_input=None,
+                function_name=None,
             )
         )
 

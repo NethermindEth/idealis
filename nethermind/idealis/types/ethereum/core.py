@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any
 
 from nethermind.idealis.types.base import DataclassDBInterface
 
@@ -31,7 +31,7 @@ class EventResponse:
     log_index: int
 
     contract_address: bytes
-    data: Optional[bytes]
+    data: bytes | None
     topics: list[bytes]
 
 
@@ -54,8 +54,8 @@ class CallTraceResponse(DataclassDBInterface):
     gas_used: int
 
     call_type: TraceCallType  # call, delegatecall, staticcall
-    error: Optional[TraceError]
-    error_text: Optional[str]
+    error: TraceError | None
+    error_text: str | None
 
     value: int
     from_address: bytes
@@ -70,7 +70,7 @@ class SuicideTraceResponse:
     transaction_index: int
     trace_address: list[int]
 
-    error: Optional[TraceError]
+    error: TraceError | None
     destroy_address: bytes
     refund_address: bytes
     balance: int
@@ -85,7 +85,7 @@ class CreateTraceResponse:
     gas_supplied: int
     gas_used: int
 
-    error: Optional[TraceError]
+    error: TraceError | None
     trace_type = TraceType.create
     from_address: bytes
 
@@ -108,7 +108,9 @@ class Transaction:
     max_priority_fee: int
     max_fee: int
 
-    to_address: Optional[bytes]
-    from_address: Optional[bytes]
+    to_address: bytes | None
+    from_address: bytes | None
 
     input: bytes
+    decoded_input: dict[str, Any] | None
+    function_name: str | None
