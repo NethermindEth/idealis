@@ -8,6 +8,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
     output_transactions = []
 
     block_number = hex_to_int(response_json["number"])
+    block_timestamp = hex_to_int(response_json["timestamp"])
 
     for transaction in response_json["transactions"]:
         if isinstance(transaction, str):  # Transaction hash instead of full transaction dict
@@ -18,6 +19,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
                 block_number=block_number,
                 transaction_hash=to_bytes(transaction["hash"], pad=32),
                 transaction_index=hex_to_int(transaction["transactionIndex"]),
+                timestamp=block_timestamp,
                 nonce=hex_to_int(transaction["nonce"]),
                 type=hex_to_int(transaction["type"]),
                 value=hex_to_int(transaction["value"]),
@@ -36,7 +38,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
 
     parsed_block = Block(
         block_number=block_number,
-        timestamp=hex_to_int(response_json["timestamp"]),
+        timestamp=block_timestamp,
         base_fee_per_gas=hex_to_int(response_json["baseFeePerGas"]),
         miner=to_bytes(response_json["miner"], pad=20),
         difficulty=hex_to_int(response_json["difficulty"]),

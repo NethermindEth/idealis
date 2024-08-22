@@ -113,6 +113,7 @@ def _parse_etherscan_transactions(
             block_number=int(tx_data["blockNumber"]),
             transaction_hash=to_bytes(tx_data["hash"], pad=32),
             transaction_index=int(tx_data["transactionIndex"]),
+            timestamp=int(tx_data["timeStamp"]),
             nonce=int(tx_data["nonce"]),
             type=None,
             value=int(tx_data["value"]),

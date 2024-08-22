@@ -98,8 +98,9 @@ class Transaction:
     block_number: int
     transaction_hash: bytes
     transaction_index: int
+    timestamp: int
     nonce: int
-    type: int
+    type: int | None
 
     value: int
     gas_price: int | None
