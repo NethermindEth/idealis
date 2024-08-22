@@ -52,6 +52,17 @@ def handle_etherscan_error(response: requests.Response) -> Any:
 def get_transactions_for_account(
     api_key: str, api_endpoint: str, from_block: int, to_block: int, account_address: bytes, page_size: int = 1000
 ):
+    """
+    Fetches all transactions for a given account address from Etherscan API.
+
+    :param api_key:
+    :param api_endpoint:
+    :param from_block: Inclusive start block
+    :param to_block: Exclusive end block
+    :param account_address:
+    :param page_size:
+    :return:
+    """
     output_transactions = []
     search_block = from_block
 
@@ -65,7 +76,7 @@ def get_transactions_for_account(
                 "action": "txlist",
                 "address": "0x" + account_address.hex(),
                 "startblock": search_block,
-                "endblock": to_block,
+                "endblock": to_block - 1,
                 "page": 1,
                 "offset": page_size,
                 "sort": "asc",
