@@ -102,15 +102,15 @@ class Transaction:
     type: int
 
     value: int
-    gas_price: int
+    gas_price: int | None
     gas_supplied: int
-    gas_used: int
-    max_priority_fee: int
-    max_fee: int
+    gas_used: int | None
+    max_priority_fee: int | None
+    max_fee: int | None
 
     to_address: bytes | None
-    from_address: bytes | None
+    from_address: bytes
 
-    input: bytes
+    input: bytes | None
     decoded_input: dict[str, Any] | None
     function_name: str | None

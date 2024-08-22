@@ -12,6 +12,7 @@ logger = root_logger.getChild("entro").getChild("backfill").getChild("etherscan"
 
 # janky...  Fix later if etherscan API is implemented on other chains
 
+
 def _validate_api_key(key: str | None) -> str:
     if key is None:
         raise ValueError("API key is required for Etherscan backfill")
@@ -49,12 +50,7 @@ def handle_etherscan_error(response: requests.Response) -> Any:
 
 # pylint: disable=too-many-locals
 def get_transactions_for_account(
-    api_key: str,
-    api_endpoint: str,
-    from_block: int,
-    to_block: int,
-    account_address: bytes,
-    page_size: int = 1000
+    api_key: str, api_endpoint: str, from_block: int, to_block: int, account_address: bytes, page_size: int = 1000
 ):
     output_transactions = []
     search_block = from_block
@@ -67,7 +63,7 @@ def get_transactions_for_account(
             params={  # type: ignore
                 "module": "account",
                 "action": "txlist",
-                "address": '0x' + account_address.hex(),
+                "address": "0x" + account_address.hex(),
                 "startblock": search_block,
                 "endblock": to_block,
                 "page": 1,
@@ -118,15 +114,15 @@ def _parse_etherscan_transactions(
             transaction_hash=to_bytes(tx_data["hash"], pad=32),
             transaction_index=int(tx_data["transactionIndex"]),
             nonce=int(tx_data["nonce"]),
-            type=-1,
+            type=None,
             value=int(tx_data["value"]),
             gas_price=int(tx_data["gasPrice"]),
             gas_supplied=int(tx_data["gas"]),
             gas_used=int(tx_data["gasUsed"]),
-            max_priority_fee=-1,
-            max_fee=-1,
+            max_priority_fee=None,
+            max_fee=None,
             to_address=to_bytes(tx_data["to"], pad=20) if tx_data["to"] else None,
-            from_address=to_bytes(tx_data["from"], pad=20) if tx_data["from"] else None,
+            from_address=to_bytes(tx_data["from"], pad=20),
             input=to_bytes(tx_data["input"]),
             decoded_input=None,
             function_name=None if tx_data["functionName"] == "" else tx_data["functionName"].rsplit("(", 1)[0],
