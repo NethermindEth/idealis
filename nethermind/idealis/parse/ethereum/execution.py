@@ -36,7 +36,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
 
     parsed_block = Block(
         block_number=block_number,
-        block_timestamp=hex_to_int(response_json["timestamp"]),
+        timestamp=hex_to_int(response_json["timestamp"]),
         base_fee_per_gas=hex_to_int(response_json["baseFeePerGas"]),
         miner=to_bytes(response_json["miner"], pad=20),
         difficulty=hex_to_int(response_json["difficulty"]),

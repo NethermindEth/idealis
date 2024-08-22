@@ -9,7 +9,7 @@ from .enums import TraceCallType, TraceError, TraceType
 @dataclass(slots=True)
 class Block:
     block_number: int
-    block_timestamp: int
+    timestamp: int
     base_fee_per_gas: int  # manually set during block instantiation
     miner: bytes
     difficulty: int  # 0 if post-merge
