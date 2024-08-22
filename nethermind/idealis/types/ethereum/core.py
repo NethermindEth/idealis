@@ -9,19 +9,21 @@ from .enums import TraceCallType, TraceError, TraceType
 @dataclass(slots=True)
 class Block:
     block_number: int
+    block_hash: bytes
     timestamp: int
-    base_fee_per_gas: int  # manually set during block instantiation
+
+    parent_hash: bytes
+    state_root: bytes
     miner: bytes
-    difficulty: int  # 0 if post-merge
     extra_data: bytes
+    nonce: bytes
+    difficulty: int  # 0 if post-merge
+    total_difficulty: int  # stays constant at 58750003716598352816469 post-merge
+    size: int
+
+    base_fee_per_gas: int  # manually set during block instantiation
     gas_limit: int
     gas_used: int
-    hash: bytes
-    nonce: bytes
-    parent_hash: bytes
-    size: int
-    state_root: bytes
-    total_difficulty: int  # stays constant at 58750003716598352816469 post-merge
 
 
 @dataclass(slots=True)

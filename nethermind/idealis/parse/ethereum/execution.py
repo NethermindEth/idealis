@@ -38,6 +38,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
 
     parsed_block = Block(
         block_number=block_number,
+        block_hash=to_bytes(response_json["hash"], pad=32),
         timestamp=block_timestamp,
         base_fee_per_gas=hex_to_int(response_json["baseFeePerGas"]),
         miner=to_bytes(response_json["miner"], pad=20),
@@ -45,7 +46,6 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
         extra_data=to_bytes(response_json["extraData"]),
         gas_limit=hex_to_int(response_json["gasLimit"]),
         gas_used=hex_to_int(response_json["gasUsed"]),
-        hash=to_bytes(response_json["hash"], pad=32),
         nonce=to_bytes(response_json["nonce"]),
         parent_hash=to_bytes(response_json["parentHash"], pad=32),
         size=hex_to_int(response_json["size"]),
