@@ -53,7 +53,12 @@ async def parse_async_rpc_response(
         response.release()  # Release the connection back to the pool, keeping TCP conn alive
 
         try:
-            return response_json["result"]
+            return_json = response_json["result"]
+            if return_json is None:
+                raise RPCError(f"RPC Returned Empty JSON for Request {response.request_info}")
+
+            return return_json
+
         except KeyError:
             if "error" in response_json.keys():
                 raise RPCError("Error in RPC response: " + response_json["error"])
