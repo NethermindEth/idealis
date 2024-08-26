@@ -22,7 +22,7 @@ async def trace_blocks(
     rpc_url: str,
     aiohttp_session: ClientSession,
 ) -> ParsedBlockTrace:
-    logger.info(f"Requesting Traces for {len(block_numbers)} Blocks")
+    logger.debug(f"Requesting Traces for {len(block_numbers)} Blocks")
 
     async def _trace_block(block_number: int):
         async with aiohttp_session.post(

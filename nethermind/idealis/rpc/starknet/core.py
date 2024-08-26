@@ -76,7 +76,7 @@ def sync_get_current_block(rpc_url) -> int:
 
 
 async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSession) -> Sequence[BlockResponse]:
-    logger.info(f"Async Requesting {len(blocks)} Blocks")
+    logger.debug(f"Async Requesting {len(blocks)} Blocks")
 
     async def _get_block(block_number: int) -> BlockResponse:
         async with aiohttp_session.post(
@@ -98,7 +98,7 @@ async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSes
 async def get_blocks_with_txns(
     blocks: list[int], rpc_url: str, aiohttp_session: ClientSession
 ) -> tuple[list[BlockResponse], list[TransactionResponse], list[Event]]:
-    logger.info(f"Async Requesting {len(blocks)} Blocks with Transactions")
+    logger.debug(f"Async Requesting {len(blocks)} Blocks with Transactions")
 
     async def _get_block(
         block_number: int,
