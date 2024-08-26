@@ -5,6 +5,15 @@ from nethermind.idealis.utils import to_bytes
 
 
 @pytest.mark.asyncio
+async def test_get_pre_london_block(eth_rpc_url, async_http_session):
+    blocks, _ = await get_blocks([8_000_000], eth_rpc_url, async_http_session, full_transactions=False)
+
+    assert len(blocks) == 1
+    assert blocks[0].block_number == 8_000_000
+    assert blocks[0].timestamp == 1561100149
+
+
+@pytest.mark.asyncio
 async def test_get_blocks(eth_rpc_url, async_http_session):
     blocks, transactions = await get_blocks([16_000_000], eth_rpc_url, async_http_session, full_transactions=False)
 

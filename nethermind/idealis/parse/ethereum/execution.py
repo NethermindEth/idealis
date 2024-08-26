@@ -40,7 +40,7 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
         block_number=block_number,
         block_hash=to_bytes(response_json["hash"], pad=32),
         timestamp=block_timestamp,
-        base_fee_per_gas=hex_to_int(response_json["baseFeePerGas"]),
+        base_fee_per_gas=hex_to_int(response_json["baseFeePerGas"]) if "baseFeePerGas" in response_json else None,
         miner=to_bytes(response_json["miner"], pad=20),
         difficulty=hex_to_int(response_json["difficulty"]),
         extra_data=to_bytes(response_json["extraData"]),
