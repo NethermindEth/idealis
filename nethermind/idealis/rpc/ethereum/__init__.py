@@ -8,6 +8,7 @@ from .execution import (
     debug_trace_block,
     get_blocks,
     get_current_block,
+    get_events_for_contract,
     sync_get_current_block,
     trace_block,
 )

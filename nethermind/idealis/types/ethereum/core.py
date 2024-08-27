@@ -27,7 +27,7 @@ class Block:
 
 
 @dataclass(slots=True)
-class EventResponse:
+class Event:
     block_number: int
     transaction_index: int
     log_index: int
@@ -35,6 +35,9 @@ class EventResponse:
     contract_address: bytes
     data: bytes | None
     topics: list[bytes]
+
+    event_name: str | None
+    decoded_params: dict[str, Any] | None
 
 
 @dataclass(slots=True)

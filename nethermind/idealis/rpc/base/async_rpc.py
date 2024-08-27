@@ -61,7 +61,7 @@ async def parse_async_rpc_response(
 
         except KeyError:
             if "error" in response_json.keys():
-                raise RPCError("Error in RPC response: " + response_json["error"])
+                raise RPCError(f"Error in RPC response:  {response_json['error']}")
 
             if "message" in response_json.keys():
                 if "rate limit" in response_json["message"] or "rate-limit" in response_json["message"]:

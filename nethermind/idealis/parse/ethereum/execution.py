@@ -1,6 +1,6 @@
 from typing import Any
 
-from nethermind.idealis.types.ethereum import Block, Transaction
+from nethermind.idealis.types.ethereum import Block, Event, Transaction
 from nethermind.idealis.utils import hex_to_int, to_bytes
 
 
@@ -54,3 +54,20 @@ def parse_get_block_response(response_json: dict[str, Any]) -> tuple[Block, list
     )
 
     return parsed_block, output_transactions
+
+
+def parse_get_logs_response(response_json: list[dict[str, Any]]) -> list[Event]:
+    return [
+        Event(
+            block_number=hex_to_int(log["blockNumber"]),
+            transaction_index=hex_to_int(log["transactionIndex"]),
+            log_index=hex_to_int(log["logIndex"]),
+            contract_address=to_bytes(log["address"], pad=20),
+            data=to_bytes(log["data"]),
+            topics=[to_bytes(topic) for topic in log["topics"]],
+            event_name=None,
+            decoded_params=None,
+        )
+        for log in response_json
+        if not log["removed"]
+    ]

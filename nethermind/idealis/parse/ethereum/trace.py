@@ -3,7 +3,7 @@ from typing import Any
 from nethermind.idealis.types.ethereum.core import (
     CallTraceResponse,
     CreateTraceResponse,
-    EventResponse,
+    Event,
     RewardTraceResponse,
     SuicideTraceResponse,
 )
@@ -13,7 +13,7 @@ from nethermind.idealis.utils import hex_to_int, to_bytes
 
 def unpack_debug_trace_block_response(
     block_traces: list[dict[str, Any]], block_number: int
-) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[EventResponse],]:
+) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[Event],]:
     return_call_traces = []
     return_create_traces = []
     return_events = []
@@ -33,7 +33,7 @@ def unpack_debug_trace_block_response(
 
 def unpack_debug_trace_transaction_response(
     trace_dict: dict[str, Any], block_number: int, transaction_index: int
-) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[EventResponse]]:
+) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[Event]]:
     if "result" in trace_dict.keys():
         # Geth Returns these these as lists responses
         # tx_hash = trace_dict["txHash"]
@@ -57,7 +57,7 @@ def parse_trace_call(
     block_number: int,
     transaction_index: int,
     trace_address: list[int],
-) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[EventResponse]]:
+) -> tuple[list[CallTraceResponse], list[CreateTraceResponse], list[Event]]:
     return_call_traces = []
     return_create_traces = []
     return_events = []
@@ -74,13 +74,15 @@ def parse_trace_call(
         return_events += events
 
     return_events += [
-        EventResponse(
+        Event(
             block_number=block_number,
             transaction_index=transaction_index,
             log_index=event["index"],
             contract_address=to_bytes(event["address"], pad=20),
             data=to_bytes(event.get("data")),
             topics=[to_bytes(topic, pad=32) for topic in event["topics"]],
+            event_name=None,
+            decoded_params=None,
         )
         for event in trace_call.get("logs", [])
     ]

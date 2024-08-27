@@ -5,13 +5,17 @@ from typing import Any, Sequence
 import requests
 from aiohttp import ClientSession
 
-from nethermind.idealis.parse.ethereum.execution import parse_get_block_response
+from nethermind.idealis.parse.ethereum.execution import (
+    parse_get_block_response,
+    parse_get_logs_response,
+)
 from nethermind.idealis.parse.ethereum.trace import (
     unpack_debug_trace_block_response,
     unpack_trace_block_response,
 )
 from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
-from nethermind.idealis.types.ethereum import Block, Transaction
+from nethermind.idealis.types.ethereum import Block, Event, Transaction
+from nethermind.idealis.utils import to_hex
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("rpc").getChild("ethereum").getChild("execution")
@@ -112,3 +116,48 @@ async def debug_trace_block(
         logger.debug(f"Finished Reading HTTP Response Bytes & Decoding JSON for Block {block_number} Debug Traces")
 
         return unpack_debug_trace_block_response(block_traces, block_number)
+
+
+async def get_events_for_contract(
+    contract_address: bytes | list[bytes],
+    topics: list[bytes | list[bytes]],
+    from_block: int,
+    to_block: int,
+    rpc_url: str,
+    aiohttp_session: ClientSession,
+) -> list[Event]:
+    """
+    Get all events for a contract address within a block range.
+
+    :param contract_address:
+        Contract address to get events for.  Can also pass a list of contract addresses
+    :param topics:
+        List of topics to filter events by.  The first topic is the event signature, and the rest are indexed parameters.
+    :param from_block: Inclusive From block.  Can be "earliest" or an integer number
+    :param to_block: Can be "latest" or an integer number.  If an int to_block is specified, it is exclusive.
+    :param rpc_url: JSON RPC URL implementing the eth_getLogs method
+    :param aiohttp_session:
+    """
+    async with aiohttp_session.post(
+        rpc_url,
+        json={
+            "jsonrpc": "2.0",
+            "method": "eth_getLogs",
+            "params": [
+                {
+                    "address": to_hex(contract_address, pad=20)
+                    if isinstance(contract_address, bytes)
+                    else [to_hex(addr, pad=20) for addr in contract_address],
+                    "fromBlock": hex(from_block) if isinstance(from_block, int) else from_block,
+                    "toBlock": hex(to_block - 1) if isinstance(to_block, int) else to_block,
+                    "topics": [
+                        to_hex(topic) if isinstance(topic, bytes) else [to_hex(t) for t in topic] for topic in topics
+                    ],
+                }
+            ],
+            "id": 1,
+        },
+    ) as events_response:
+        events_json = await parse_async_rpc_response(events_response)
+
+        return parse_get_logs_response(events_json)
