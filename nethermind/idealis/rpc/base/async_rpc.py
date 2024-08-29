@@ -46,8 +46,16 @@ def create_aiohttp_session(
 
 
 async def parse_async_rpc_response(
+    payload: dict[str, Any],
     response: ClientResponse,
 ) -> Any:
+    """
+    Parse an async RPC response and return the result.
+
+    :param payload:  RPC Request JSON
+    :param response: AioHttp Response Object
+    :return: response.json()['result'] if successful, and raises a formatted exception if not
+    """
     try:
         response_json = await response.json()  # Async read response bytes
         response.release()  # Release the connection back to the pool, keeping TCP conn alive
@@ -55,19 +63,21 @@ async def parse_async_rpc_response(
         try:
             return_json = response_json["result"]
             if return_json is None:
-                raise RPCError(f"RPC Returned Empty JSON for Request {response.request_info}")
+                raise RPCError(
+                    f"RPC Returned Empty JSON for Request {payload}...  Request Info: {response.request_info}"
+                )
 
             return return_json
 
         except KeyError:
             if "error" in response_json.keys():
-                raise RPCError(f"Error in RPC response:  {response_json['error']}")
+                raise RPCError(f"Error in RPC response:  {response_json['error']}.  Request Payload: {payload}")
 
             if "message" in response_json.keys():
                 if "rate limit" in response_json["message"] or "rate-limit" in response_json["message"]:
                     raise RPCRateLimitError(f"Rate Limits Exceeded for RPC {response.url}")
 
-            raise RPCError(f"Error for RPC {response.url} -- Response: {response_json}")
+            raise RPCError(f"Error for RPC {response.url} -- Response: {response_json}  -- Request Payload: {payload}")
 
     except ContentTypeError:
         match response.status:
@@ -77,12 +87,11 @@ async def parse_async_rpc_response(
                 raise RPCHostError("Internal Server Error")
 
             case _:
-                logger.error(f"\n{'-' * 40}")
-                logger.error("Unexpected Error in response for request: ", response.request_info)
-                logger.error(f"Error Code: {response.status}")
-                logger.error(await response.text())
-                logger.error("-" * 40)
+                logger.error(f"Unexpected Error in response for request: {payload}")
+                logger.error(f"Response Information: {response.request_info}")
+                logger.error(f"Error Code: {response.status} --  Response Text: {await response.text()}")
                 raise RPCError("Unexpected Content Type AioHttp Error")
+
     except TimeoutError:
         raise RPCTimeoutError(f"Timeout Error for RPC Host {response.host}")
 

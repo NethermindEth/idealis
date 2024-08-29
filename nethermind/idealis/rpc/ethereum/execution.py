@@ -54,14 +54,16 @@ async def get_blocks(
     async def _get_block(num: int) -> tuple[Block, list[Transaction]]:
         async with aiohttp_session.post(
             url=rpc_url,
-            json={
-                "id": 1,
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockByNumber",
-                "params": [hex(num), full_transactions],
-            },
+            json=(
+                payload := {
+                    "id": 1,
+                    "jsonrpc": "2.0",
+                    "method": "eth_getBlockByNumber",
+                    "params": [hex(num), full_transactions],
+                }
+            ),
         ) as response:
-            block_json = await parse_async_rpc_response(response)
+            block_json = await parse_async_rpc_response(payload, response)
             logger.debug(f"Async POST -- get {len(blocks)} blocks returned {response.content_length} bytes")
 
             return parse_get_block_response(block_json)
@@ -83,14 +85,16 @@ async def trace_block(
 
     async with aiohttp_session.post(
         url=rpc_url,
-        json={
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "trace_block",
-            "params": [block_number],
-        },
+        json=(
+            payload := {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "trace_block",
+                "params": [block_number],
+            }
+        ),
     ) as response:
-        block_traces = await parse_async_rpc_response(response)
+        block_traces = await parse_async_rpc_response(payload, response)
         logger.debug(f"Async POST -- trace_block {block_number} returned {response.content_length} bytes")
 
         return unpack_trace_block_response(block_traces)
@@ -105,14 +109,16 @@ async def debug_trace_block(
 
     async with aiohttp_session.post(
         url=rpc_url,
-        json={
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "debug_traceBlockByNumber",
-            "params": [block_number],
-        },
+        json=(
+            payload := {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "debug_traceBlockByNumber",
+                "params": [block_number],
+            }
+        ),
     ) as response:
-        block_traces = await parse_async_rpc_response(response)
+        block_traces = await parse_async_rpc_response(payload, response)
         logger.debug(f"Finished Reading HTTP Response Bytes & Decoding JSON for Block {block_number} Debug Traces")
 
         return unpack_debug_trace_block_response(block_traces, block_number)
@@ -140,24 +146,27 @@ async def get_events_for_contract(
     """
     async with aiohttp_session.post(
         rpc_url,
-        json={
-            "jsonrpc": "2.0",
-            "method": "eth_getLogs",
-            "params": [
-                {
-                    "address": to_hex(contract_address, pad=20)
-                    if isinstance(contract_address, bytes)
-                    else [to_hex(addr, pad=20) for addr in contract_address],
-                    "fromBlock": hex(from_block) if isinstance(from_block, int) else from_block,
-                    "toBlock": hex(to_block - 1) if isinstance(to_block, int) else to_block,
-                    "topics": [
-                        to_hex(topic) if isinstance(topic, bytes) else [to_hex(t) for t in topic] for topic in topics
-                    ],
-                }
-            ],
-            "id": 1,
-        },
+        json=(
+            payload := {
+                "jsonrpc": "2.0",
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": to_hex(contract_address, pad=20)
+                        if isinstance(contract_address, bytes)
+                        else [to_hex(addr, pad=20) for addr in contract_address],
+                        "fromBlock": hex(from_block) if isinstance(from_block, int) else from_block,
+                        "toBlock": hex(to_block - 1) if isinstance(to_block, int) else to_block,
+                        "topics": [
+                            to_hex(topic) if isinstance(topic, bytes) else [to_hex(t) for t in topic]
+                            for topic in topics
+                        ],
+                    }
+                ],
+                "id": 1,
+            }
+        ),
     ) as events_response:
-        events_json = await parse_async_rpc_response(events_response)
+        events_json = await parse_async_rpc_response(payload, events_response)
 
         return parse_get_logs_response(events_json)

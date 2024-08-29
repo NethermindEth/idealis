@@ -27,14 +27,16 @@ async def trace_blocks(
     async def _trace_block(block_number: int):
         async with aiohttp_session.post(
             url=rpc_url,
-            json={
-                "id": 1,
-                "jsonrpc": "2.0",
-                "method": "starknet_traceBlockTransactions",
-                "params": {"block_id": {"block_number": block_number}},
-            },
+            json=(
+                payload := {
+                    "id": 1,
+                    "jsonrpc": "2.0",
+                    "method": "starknet_traceBlockTransactions",
+                    "params": {"block_id": {"block_number": block_number}},
+                }
+            ),
         ) as response:
-            block_traces = await parse_async_rpc_response(response)
+            block_traces = await parse_async_rpc_response(payload, response)
             logger.debug(f"trace_blocks -> {block_number} returned {response.content.total_bytes} json bytes")
             try:
                 return unpack_trace_block_response(block_traces, block_number)
@@ -58,14 +60,16 @@ async def trace_transaction(
 ) -> ParsedTransactionTrace:
     async with aiohttp_session.post(
         url=rpc_url,
-        json={
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "starknet_traceTransaction",
-            "params": {"transaction_hash": to_hex(transaction_hash, pad=32)},
-        },
+        json=(
+            payload := {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "starknet_traceTransaction",
+                "params": {"transaction_hash": to_hex(transaction_hash, pad=32)},
+            }
+        ),
     ) as response:
-        tx_trace = await parse_async_rpc_response(response)
+        tx_trace = await parse_async_rpc_response(payload, response)
         logger.debug(
             f"trace_transaction -> {pprint_hash(transaction_hash)} returned {response.content.total_bytes} json bytes"
         )

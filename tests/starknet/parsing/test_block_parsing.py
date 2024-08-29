@@ -19,10 +19,10 @@ def test_parsing_v0_13_1_block_response():
 
     assert len(events) == 1925
 
-    assert events[0].tx_index == 0
+    assert events[0].transaction_index == 0
     assert events[0].contract_address == to_bytes("0x59a943ca214c10234b9a3b61c558ac20c005127d183b86a99a8f3c60a08b4ff")
     assert events[0].event_index == 0
 
-    assert events[-1].tx_index == 190
+    assert events[-1].transaction_index == 190
     assert events[-1].contract_address == to_bytes("0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
     assert events[-1].event_index == 9

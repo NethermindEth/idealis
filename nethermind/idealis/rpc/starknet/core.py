@@ -43,14 +43,16 @@ def _starknet_block_id(block_id: int | str | bytes) -> str | dict[str, str | int
 async def get_current_block(aiohttp_session: ClientSession, json_rpc: str) -> int:
     async with aiohttp_session.post(
         json_rpc,
-        json={
-            "jsonrpc": "2.0",
-            "method": "starknet_blockNumber",
-            "params": {},
-            "id": 1,
-        },
+        json=(
+            payload := {
+                "jsonrpc": "2.0",
+                "method": "starknet_blockNumber",
+                "params": {},
+                "id": 1,
+            }
+        ),
     ) as latest_block_resp:
-        response_json = await parse_async_rpc_response(latest_block_resp)
+        response_json = await parse_async_rpc_response(payload, latest_block_resp)
 
         return int(response_json)
 
@@ -81,14 +83,16 @@ async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSes
     async def _get_block(block_number: int) -> BlockResponse:
         async with aiohttp_session.post(
             rpc_url,
-            json={
-                "jsonrpc": "2.0",
-                "method": "starknet_getBlockWithTxHashes",
-                "params": {"block_id": _starknet_block_id(block_number)},
-                "id": 1,
-            },
+            json=(
+                payload := {
+                    "jsonrpc": "2.0",
+                    "method": "starknet_getBlockWithTxHashes",
+                    "params": {"block_id": _starknet_block_id(block_number)},
+                    "id": 1,
+                }
+            ),
         ) as block_response:
-            block_json = await parse_async_rpc_response(block_response)
+            block_json = await parse_async_rpc_response(payload, block_response)
             return parse_block(block_json)
 
     response_data = await asyncio.gather(*[_get_block(block) for block in blocks])
@@ -105,17 +109,17 @@ async def get_blocks_with_txns(
     ) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
         async with aiohttp_session.post(
             rpc_url,
-            json={
-                "jsonrpc": "2.0",
-                "method": "starknet_getBlockWithReceipts",
-                "params": {"block_id": _starknet_block_id(block_number)},
-                "id": 1,
-            },
-        ) as block_response:
-            block_json = await parse_async_rpc_response(block_response)
-            logger.debug(
-                f"get_blocks_with_txns -> {block_number} returned {block_response.content.total_bytes} json bytes"
-            )
+            json=(
+                payload := {
+                    "jsonrpc": "2.0",
+                    "method": "starknet_getBlockWithReceipts",
+                    "params": {"block_id": _starknet_block_id(block_number)},
+                    "id": 1,
+                }
+            ),
+        ) as response:
+            block_json = await parse_async_rpc_response(payload, response)
+            logger.debug(f"get_blocks_with_txns -> {block_number} returned {response.content.total_bytes} json bytes")
             try:
                 return parse_block_with_tx_receipts(block_json)
             except BaseException as e:
@@ -208,17 +212,19 @@ async def get_contract_impl_class(
     """
     async with aiohttp_session.post(
         rpc_url,
-        json={
-            "jsonrpc": "2.0",
-            "method": "starknet_getClassHashAt",
-            "params": {
-                "block_id": _starknet_block_id(block_id),
-                "contract_address": to_hex(contract_address),
-            },
-            "id": 1,
-        },
-    ) as contract_response:
-        contract_json = await parse_async_rpc_response(contract_response)
+        json=(
+            payload := {
+                "jsonrpc": "2.0",
+                "method": "starknet_getClassHashAt",
+                "params": {
+                    "block_id": _starknet_block_id(block_id),
+                    "contract_address": to_hex(contract_address),
+                },
+                "id": 1,
+            }
+        ),
+    ) as response:
+        contract_json = await parse_async_rpc_response(payload, response)
         return to_bytes(contract_json["class_hash"], pad=32)
 
 
@@ -233,25 +239,27 @@ async def get_events_for_contract(
 ) -> list[Event]:
     async with aiohttp_session.post(
         rpc_url,
-        json={
-            "jsonrpc": "2.0",
-            "method": "starknet_getEvents",
-            "params": {
-                "filter": {
-                    "from_block": _starknet_block_id(from_block),
-                    "to_block": _starknet_block_id(to_block),
-                    "address": to_hex(contract_address, pad=32),
-                    "keys": [
-                        [to_hex(key, pad=32) for key in event_keys]  # Key[0] searches event_selector...
-                        # Additional keys can search through indexed event keys?
-                        # TODO: Test & implement
-                    ],
-                    "continuation_token": f"{from_block}-0",
-                    "chunk_size": page_size,  # Max chunk size
-                }
-            },
-            "id": 1,
-        },
-    ) as events_response:
-        events_json = await parse_async_rpc_response(events_response)
+        json=(
+            payload := {
+                "jsonrpc": "2.0",
+                "method": "starknet_getEvents",
+                "params": {
+                    "filter": {
+                        "from_block": _starknet_block_id(from_block),
+                        "to_block": _starknet_block_id(to_block),
+                        "address": to_hex(contract_address, pad=32),
+                        "keys": [
+                            [to_hex(key, pad=32) for key in event_keys]  # Key[0] searches event_selector...
+                            # Additional keys can search through indexed event keys?
+                            # TODO: Test & implement
+                        ],
+                        "continuation_token": f"{from_block}-0",
+                        "chunk_size": page_size,  # Max chunk size
+                    }
+                },
+                "id": 1,
+            }
+        ),
+    ) as response:
+        events_json = await parse_async_rpc_response(payload, response)
         return parse_event_response(events_json)

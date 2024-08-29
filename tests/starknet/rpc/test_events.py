@@ -16,11 +16,9 @@ async def test_get_starknet_eth_transfers(starknet_rpc_url, async_http_session):
         aiohttp_session=async_http_session,
     )
 
-    print(events)
-
     for e in events:
         # There is no way to know tx & event index when querying events by contract
-        assert e.tx_index == -1  # Unknown
+        assert e.transaction_index == -1  # Unknown
         assert e.event_index == -1  # Unknown
 
         assert e.contract_address == to_bytes("049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
