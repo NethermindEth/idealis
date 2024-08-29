@@ -6,7 +6,7 @@ class DataclassDBInterface:
         self,
         json_encoder: Callable[[Any], Any] | None = None,
         json_fields: set[str] | None = None,
-        custom_parser: dict[str, callable] | None = None,
+        custom_parser: dict[str, Callable] | None = None,
     ) -> tuple:
         """
         Convert the dataclass to a tuple for insertion into the database.  Values are ordered indentically to the
@@ -23,7 +23,7 @@ class DataclassDBInterface:
             raise ValueError("Json Encoder param required for json dataclass fields")
 
         return_cols = []
-        for field_name, field_type in self.__annotations__.items():
+        for field_name, field_type in self.__annotations__.items():  # type: ignore
             encode_field = getattr(self, field_name)
 
             if custom_parser and field_name in custom_parser:
@@ -37,6 +37,6 @@ class DataclassDBInterface:
         return tuple(return_cols)
 
     def from_db_row(self, row: Sequence[Any]):
-        for idx, (field_name, field_type) in enumerate(self.__annotations__):
+        for idx, (field_name, field_type) in enumerate(self.__annotations__):  # type: ignore
             setattr(self, field_name, row[idx])
         return self

@@ -61,7 +61,7 @@ def parse_get_logs_response(response_json: list[dict[str, Any]]) -> list[Event]:
         Event(
             block_number=hex_to_int(log["blockNumber"]),
             transaction_index=hex_to_int(log["transactionIndex"]),
-            log_index=hex_to_int(log["logIndex"]),
+            event_index=hex_to_int(log["logIndex"]),
             contract_address=to_bytes(log["address"], pad=20),
             data=to_bytes(log["data"]),
             topics=[to_bytes(topic) for topic in log["topics"]],

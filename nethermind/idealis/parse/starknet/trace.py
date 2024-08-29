@@ -403,7 +403,7 @@ def parse_events(
         Event(
             contract_address=contract_address,
             block_number=block_number,
-            tx_index=tx_index,
+            transaction_index=tx_index,
             event_index=event["order"],
             keys=[to_bytes(key, pad=32) for key in event["keys"]],
             data=[to_bytes(data) for data in event["data"]],

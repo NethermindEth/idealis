@@ -77,7 +77,7 @@ def parse_trace_call(
         Event(
             block_number=block_number,
             transaction_index=transaction_index,
-            log_index=event["index"],
+            event_index=event["index"],
             contract_address=to_bytes(event["address"], pad=20),
             data=to_bytes(event.get("data")),
             topics=[to_bytes(topic, pad=32) for topic in event["topics"]],

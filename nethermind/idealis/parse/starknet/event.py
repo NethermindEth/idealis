@@ -14,7 +14,7 @@ def parse_event_response(rpc_response: dict[str, Any]) -> list[Event]:
     return [
         Event(
             block_number=e["block_number"],
-            tx_index=-1,
+            transaction_index=-1,
             event_index=-1,
             contract_address=to_bytes(e["from_address"], pad=32),
             class_hash=None,
@@ -33,7 +33,7 @@ def filter_erc_20_transfers(events: list[Event]) -> list[ERC20Transfer]:
     return [
         ERC20Transfer(
             block_number=event.block_number,
-            transaction_index=event.tx_index,
+            transaction_index=event.transaction_index,
             event_index=event.event_index,
             token_address=event.contract_address,
             from_address=event.decoded_params["from_"],
@@ -58,7 +58,7 @@ def filter_erc_721_transfers(events: list[Event]) -> list[ERC721Transfer]:
     return [
         ERC721Transfer(
             block_number=event.block_number,
-            transaction_index=event.tx_index,
+            transaction_index=event.transaction_index,
             event_index=event.event_index,
             token_address=event.contract_address,
             from_address=event.decoded_params["from_"],

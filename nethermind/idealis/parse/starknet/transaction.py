@@ -115,7 +115,7 @@ def parse_transaction_with_receipt(
     events = [
         Event(
             block_number=block_number,
-            tx_index=tx_index,
+            transaction_index=tx_index,
             event_index=event_index,
             class_hash=b"",  # Event class hashes are unknown to tx receipts.  Use contract mapping
             contract_address=to_bytes(event_dict["from_address"], pad=32),

@@ -116,7 +116,7 @@ class Trace(DataclassDBInterface):
 @dataclass(slots=True)
 class Event(DataclassDBInterface):
     block_number: int
-    tx_index: int
+    transaction_index: int
     event_index: int
 
     contract_address: bytes

@@ -30,7 +30,7 @@ class Block:
 class Event:
     block_number: int
     transaction_index: int
-    log_index: int
+    event_index: int
 
     contract_address: bytes
     data: bytes | None
