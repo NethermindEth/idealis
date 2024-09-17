@@ -48,9 +48,13 @@ def handle_etherscan_error(response: requests.Response) -> Any:
             )
 
 
-# pylint: disable=too-many-locals
-def get_transactions_for_account(
-    api_key: str, api_endpoint: str, from_block: int, to_block: int, account_address: bytes, page_size: int = 1000
+def get_transactions_for_account(  # pylint: disable=too-many-locals, too-many-arguments
+    api_key: str,
+    api_endpoint: str,
+    from_block: int,
+    to_block: int,
+    account_address: bytes,
+    page_size: int = 1000,
 ):
     """
     Fetches all transactions for a given account address from Etherscan API.

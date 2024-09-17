@@ -438,7 +438,7 @@ def replace_delegate_calls(traces: list[Trace]) -> list[Trace]:
     :param traces:
     :return:
     """
-    tx_grouped_traces = {}
+    tx_grouped_traces: dict[tuple[int, int], list[Trace]] = {}
 
     for trace in traces:
         if (trace.block_number, trace.tx_index) not in tx_grouped_traces:

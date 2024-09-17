@@ -1,7 +1,7 @@
 from typing import Any
 
+from nethermind.idealis.types.base import ERC20Transfer, ERC721Transfer
 from nethermind.idealis.types.starknet.core import Event
-from nethermind.idealis.types.starknet.tokens import ERC20Transfer, ERC721Transfer
 from nethermind.idealis.utils import to_bytes
 from nethermind.starknet_abi.utils import starknet_keccak
 
@@ -25,51 +25,103 @@ def parse_event_response(rpc_response: dict[str, Any]) -> list[Event]:
     ]
 
 
-def filter_erc_20_transfers(events: list[Event]) -> list[ERC20Transfer]:
+# -------------------------------------
+# Unhandled starknet transfer events...
+# -------------------------------------
+# {to,from,amountOrId}  -- Not handled.  WTF? :face_palm:
+# {to,ext,token,amount}  -- Not handled  What is ext?
+# {id,amount,caller,sender,receiver}  -- Not handled.  1155
+# {to,from,asset,amount}  -- Not handled.  Multi ERC Contract?
+# {id,to,amount,exp_time}  -- Not handled.  WTF?  Where is the from_address?
+# {to,from,tick,value}  -- Not handled.  WTF?
+
+
+def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC721Transfer]]:
     """
     Filter out ERC20 Transfer events from a list of Starknet Events
     """
+    erc_20_transfers, erc_721_transfers = [], []
 
-    return [
-        ERC20Transfer(
-            block_number=event.block_number,
-            transaction_index=event.transaction_index,
-            event_index=event.event_index,
-            token_address=event.contract_address,
-            from_address=event.decoded_params["from_"],
-            to_address=event.decoded_params["to"],
-            value=event.decoded_params["value"],
-        )
-        for event in events
-        if len(event.keys) > 0
-        and event.keys[0] == TRANSFER_SIGNATURE
-        and event.decoded_params is not None
-        and "value" in event.decoded_params
-        and "from_" in event.decoded_params
-        and "to" in event.decoded_params
-    ]
+    for event in events:
+        if not event.keys or not event.decoded_params or event.keys[0] != TRANSFER_SIGNATURE:
+            continue
 
+        shared_params = {
+            "block_number": event.block_number,
+            "transaction_index": event.transaction_index,
+            "event_index": event.event_index,
+            "token_address": event.contract_address,
+        }
+        sorted_keys = tuple(sorted(event.decoded_params.keys()))
+        match sorted_keys:
+            # -----------------------------------------
+            # ERC20 Transfer Cases
+            # -----------------------------------------
 
-def filter_erc_721_transfers(events: list[Event]) -> list[ERC721Transfer]:
-    """
-    Filter out ERC721 Transfer events from a list of Starknet Events
-    """
+            case ("from", "to", "value") | ("from_", "to", "value") | ("amount", "from", "to"):
+                # Standard ERC20 transfers
+                erc_20_transfers.append(
+                    ERC20Transfer(
+                        from_address=event.decoded_params.get("from") or event.decoded_params["from_"],
+                        to_address=event.decoded_params["to"],
+                        value=event.decoded_params.get("value") or event.decoded_params["amount"],
+                        **shared_params,  # type: ignore
+                    )
+                )
 
-    return [
-        ERC721Transfer(
-            block_number=event.block_number,
-            transaction_index=event.transaction_index,
-            event_index=event.event_index,
-            token_address=event.contract_address,
-            from_address=event.decoded_params["from_"],
-            to_address=event.decoded_params["to"],
-            token_id=event.decoded_params["tokenId"],
-        )
-        for event in events
-        if len(event.keys) > 0
-        and event.keys[0] == TRANSFER_SIGNATURE
-        and event.decoded_params is not None
-        and "tokenId" in event.decoded_params
-        and "from_" in event.decoded_params
-        and "to" in event.decoded_params
-    ]
+            case ("counter", "from", "to", "value"):
+                erc_20_transfers.append(
+                    ERC20Transfer(
+                        from_address=event.decoded_params["from"],
+                        to_address=event.decoded_params["to"],
+                        value=event.decoded_params["value"],
+                        **shared_params,  # type: ignore
+                    )
+                )
+
+            case ("amount", "from_address", "to_address"):
+                erc_20_transfers.append(
+                    ERC20Transfer(
+                        from_address=event.decoded_params["from_address"],
+                        to_address=event.decoded_params["to_address"],
+                        value=event.decoded_params["amount"],
+                        **shared_params,  # type: ignore
+                    )
+                )
+
+            case ("recipient", "sender", "value"):
+                erc_20_transfers.append(
+                    ERC20Transfer(
+                        from_address=event.decoded_params["sender"],
+                        to_address=event.decoded_params["recipient"],
+                        value=event.decoded_params["value"],
+                        **shared_params,  # type: ignore
+                    )
+                )
+
+            # -----------------------------------------
+            # ERC721 Transfer Cases
+            # -----------------------------------------
+
+            case ("from", "to", "token_id"):  # Standard ERC721 transfers
+                erc_721_transfers.append(
+                    ERC721Transfer(
+                        from_address=event.decoded_params["from"],
+                        to_address=event.decoded_params["to"],
+                        token_id=event.decoded_params["token_id"],
+                        **shared_params,  # type: ignore
+                    )
+                )
+            case ("_from", "_to", "_tokenId") | ("_from", "to", "tokenId") | ("from_", "to", "tokenId"):
+                erc_721_transfers.append(
+                    ERC721Transfer(
+                        from_address=event.decoded_params.get("_from") or event.decoded_params["from_"],
+                        to_address=event.decoded_params.get("to") or event.decoded_params["_to"],
+                        token_id=event.decoded_params.get("tokenId") or event.decoded_params["_tokenId"],
+                        **shared_params,  # type: ignore
+                    )
+                )
+            case _:
+                continue
+
+    return erc_20_transfers, erc_721_transfers

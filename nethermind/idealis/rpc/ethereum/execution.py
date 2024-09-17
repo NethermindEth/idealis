@@ -68,9 +68,9 @@ async def get_blocks(
 
             return parse_get_block_response(block_json)
 
-    blocks = await asyncio.gather(*[_get_block(block) for block in blocks])
+    block_data = await asyncio.gather(*[_get_block(block) for block in blocks])
     output_blocks, output_transactions = [], []
-    for block, transactions in blocks:
+    for block, transactions in block_data:
         output_blocks.append(block)
         output_transactions.extend(transactions)
     return output_blocks, output_transactions

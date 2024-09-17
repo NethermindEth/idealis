@@ -20,7 +20,7 @@ def parse_transaction(
     block_number: int,
     tx_index: int,
     block_timestamp: int,
-):
+) -> TransactionResponse:
     tx_type = StarknetTxType(tx_data["type"])
     tx_version = hex_to_int(tx_data["version"])
 
@@ -141,31 +141,12 @@ class FilteredTransactions:
 def filter_transactions_by_type(
     transactions: list[TransactionResponse],
 ) -> FilteredTransactions:
-    invoke = []
-    declare = []
-    deploy = []
-    deploy_account = []
-    l1_handler = []
-
-    for tx in transactions:
-        match tx.type:
-            case StarknetTxType.invoke:
-                invoke.append(tx)
-            case StarknetTxType.declare:
-                declare.append(tx)
-            case StarknetTxType.deploy:
-                deploy.append(tx)
-            case StarknetTxType.deploy_account:
-                deploy_account.append(tx)
-            case StarknetTxType.l1_handler:
-                l1_handler.append(tx)
-
     return FilteredTransactions(
-        invoke_transactions=invoke,
-        declare_transactions=declare,
-        deploy_transactions=deploy,
-        deploy_account_transactions=deploy_account,
-        l1_handler_transactions=l1_handler,
+        invoke_transactions=[tx for tx in transactions if tx.type == StarknetTxType.invoke],
+        declare_transactions=[tx for tx in transactions if tx.type == StarknetTxType.declare],
+        deploy_transactions=[tx for tx in transactions if tx.type == StarknetTxType.deploy],
+        deploy_account_transactions=[tx for tx in transactions if tx.type == StarknetTxType.deploy_account],
+        l1_handler_transactions=[tx for tx in transactions if tx.type == StarknetTxType.l1_handler],
     )
 
 
