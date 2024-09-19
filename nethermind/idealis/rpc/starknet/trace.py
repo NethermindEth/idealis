@@ -56,7 +56,7 @@ async def trace_transaction(
     rpc_url: str,
     aiohttp_session: ClientSession,
     block_number: int = -1,
-    tx_index: int = -1,
+    transaction_index: int = -1,
 ) -> ParsedTransactionTrace:
     async with aiohttp_session.post(
         url=rpc_url,
@@ -75,7 +75,7 @@ async def trace_transaction(
         )
 
         try:
-            return unpack_trace_response(tx_trace, block_number, tx_index, transaction_hash)
+            return unpack_trace_response(tx_trace, block_number, transaction_index, transaction_hash)
         except BaseException as e:
             logger.error(f"Error parsing transaction trace for 0x{transaction_hash.hex()}: {e}")
             raise e

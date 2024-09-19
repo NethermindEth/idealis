@@ -38,6 +38,7 @@ async def test_get_blocks_with_txns(eth_rpc_url, async_http_session):
     assert len(transactions[9].input) == 14252
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_get_weth_events(eth_rpc_url, async_http_session):
     events = await get_events_for_contract(

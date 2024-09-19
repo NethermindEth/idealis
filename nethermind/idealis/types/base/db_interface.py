@@ -38,5 +38,5 @@ class DataclassDBInterface:
 
     def from_db_row(self, row: Sequence[Any]):
         for idx, (field_name, field_type) in enumerate(self.__annotations__):  # type: ignore
-            setattr(self, field_name, row[idx])
+            setattr(self, field_name, row[idx])  # type: ignore
         return self

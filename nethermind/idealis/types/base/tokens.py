@@ -1,0 +1,45 @@
+from dataclasses import dataclass
+
+from .db_interface import DataclassDBInterface
+
+
+@dataclass(slots=True)
+class ERC20TokenData(DataclassDBInterface):
+    address: bytes
+    name: str | None
+    symbol: str | None
+    decimals: int | None
+    total_supply: int | None
+    update_block: int
+
+
+@dataclass(slots=True)
+class ERC721TokenData(DataclassDBInterface):
+    name: str | None
+    symbol: str | None
+    total_supply: int | None
+    update_block: int
+
+
+@dataclass(slots=True)
+class ERC20Transfer(DataclassDBInterface):
+    block_number: int
+    transaction_index: int
+    event_index: int
+
+    token_address: bytes
+    from_address: bytes
+    to_address: bytes
+    value: int
+
+
+@dataclass(slots=True)
+class ERC721Transfer(DataclassDBInterface):
+    block_number: int
+    transaction_index: int
+    event_index: int
+
+    token_address: bytes
+    from_address: bytes
+    to_address: bytes
+    token_id: bytes

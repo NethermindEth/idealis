@@ -10,6 +10,7 @@ from .core import (
     get_class_abis,
     get_current_block,
     get_events_for_contract,
+    starknet_call,
     sync_get_class_abi,
     sync_get_current_block,
 )

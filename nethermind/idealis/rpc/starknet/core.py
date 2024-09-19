@@ -263,3 +263,46 @@ async def get_events_for_contract(
     ) as response:
         events_json = await parse_async_rpc_response(payload, response)
         return parse_event_response(events_json)
+
+
+async def starknet_call(
+    contract_address: bytes,
+    entry_point_selector: bytes,
+    calldata: list[bytes],
+    aiohttp_session: ClientSession,
+    rpc_url: str,
+    block_id: int | str = "latest",
+) -> list[str] | None:
+    """
+    Call a Starknet contract at a given block number
+
+    :param contract_address:  Contract Address
+    :param entry_point_selector:  Selector for the entry point
+    :param calldata:  Calldata for the contract call
+    :param aiohttp_session:  Async HTTP Client Session
+    :param rpc_url:  URL for Starknet RPC
+    :param block_id:  Block number to call the contract at.  Defaults to 'latest'
+    :return:  Return data from the contract call
+    """
+    async with aiohttp_session.post(
+        rpc_url,
+        json={
+            "jsonrpc": "2.0",
+            "method": "starknet_call",
+            "params": {
+                "request": {
+                    "contract_address": to_hex(contract_address, pad=32),
+                    "entry_point_selector": to_hex(entry_point_selector, pad=32),
+                    "calldata": [to_hex(data.lstrip(b"\x00")) for data in calldata],
+                },
+                "block_id": _starknet_block_id(block_id),
+            },
+            "id": 1,
+        },
+    ) as response:
+        response_json = await response.json()  # Async read response bytes
+        response.release()  # Release the connection back to the pool, keeping TCP conn alive
+
+        if "error" in response_json:
+            return None
+        return response_json["result"]

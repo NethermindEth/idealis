@@ -11,6 +11,7 @@ from nethermind.idealis.types.starknet.core import (
     Event,
     StateDiff,
     Trace,
+    TraceCall,
 )
 from nethermind.idealis.types.starknet.enums import EntryPointType, TraceCallType
 from nethermind.idealis.utils import to_bytes
@@ -140,11 +141,11 @@ def unpack_trace_block_response(
     """
     block_trace = ParsedBlockTrace.init()
 
-    for tx_index, trace_dict in enumerate(trace_response):
+    for transaction_index, trace_dict in enumerate(trace_response):
         transaction_trace = unpack_trace_response(
             trace_response=trace_dict,
             block_number=block_number,
-            tx_index=tx_index,
+            transaction_index=transaction_index,
         )
 
         block_trace.add_transaction_trace(transaction_trace)
@@ -155,12 +156,12 @@ def unpack_trace_block_response(
 def _get_root_call(
     trace_root_json: dict[str, Any],
     block_number: int,
-    tx_index: int,
+    transaction_index: int,
 ) -> Trace:
     """
     Gets trace where trace_address==[0]
     This is useful to get the original tx calldata array, and the original tx sender address, and information
-    like the block_number and tx_index.  If a revert error occurs, this method will get the original calldata from
+    like the block_number and transaction_index.  If a revert error occurs, this method will get the original calldata from
     the validate invocation, and tie it to the errored execute trace.
 
     :return:
@@ -186,7 +187,7 @@ def _get_root_call(
 
     return Trace(
         block_number=block_number,
-        tx_index=tx_index,
+        transaction_index=transaction_index,
         trace_address=[0],
         contract_address=contract_address,
         selector=selector,
@@ -204,7 +205,7 @@ def _get_root_call(
 def unpack_trace_response(
     trace_response: dict[str, Any],
     block_number: int,
-    tx_index: int,
+    transaction_index: int,
     tx_hash: bytes | None = None,
 ) -> ParsedTransactionTrace:
     """
@@ -213,7 +214,7 @@ def unpack_trace_response(
 
     :param trace_response: JSON decoded Trace response.
     :param block_number:
-    :param tx_index:
+    :param transaction_index:
     :param tx_hash:
 
     :return:
@@ -223,7 +224,7 @@ def unpack_trace_response(
 
     trace_root = trace_response["trace_root"] if "trace_root" in trace_response else trace_response
 
-    root_call = _get_root_call(trace_root, block_number, tx_index)
+    root_call = _get_root_call(trace_root, block_number, transaction_index)
 
     validate_traces, validate_events = parse_validate_traces(trace_root, root_call)
 
@@ -303,7 +304,7 @@ def parse_execute_trace(
         execute_traces = [
             Trace(
                 block_number=root_call.block_number,
-                tx_index=root_call.tx_index,
+                transaction_index=root_call.transaction_index,
                 trace_address=[0],
                 contract_address=root_call.contract_address,
                 selector=root_call.selector,
@@ -368,13 +369,13 @@ def parse_trace_call(
         trace_call_dict=trace_call_dict["events"],
         contract_address=called_contract,
         block_number=root_call.block_number,
-        tx_index=root_call.tx_index,
+        transaction_index=root_call.transaction_index,
         class_hash=class_hash,
     )
     call_trace = Trace(
         contract_address=called_contract,
         block_number=root_call.block_number,
-        tx_index=root_call.tx_index,
+        transaction_index=root_call.transaction_index,
         trace_address=trace_path,
         selector=to_bytes(trace_call_dict.get("entry_point_selector", "0x0"), pad=32),
         calldata=[to_bytes(data) for data in trace_call_dict["calldata"]],
@@ -396,14 +397,14 @@ def parse_events(
     trace_call_dict: list[dict[str, Any]],
     contract_address: bytes,
     block_number: int,
-    tx_index: int,
+    transaction_index: int,
     class_hash: bytes,
 ) -> list[Event]:
     return [
         Event(
             contract_address=contract_address,
             block_number=block_number,
-            transaction_index=tx_index,
+            transaction_index=transaction_index,
             event_index=event["order"],
             keys=[to_bytes(key, pad=32) for key in event["keys"]],
             data=[to_bytes(data) for data in event["data"]],
@@ -438,13 +439,13 @@ def replace_delegate_calls(traces: list[Trace]) -> list[Trace]:
     :param traces:
     :return:
     """
-    tx_grouped_traces = {}
+    tx_grouped_traces: dict[tuple[int, int], list[Trace]] = {}
 
     for trace in traces:
-        if (trace.block_number, trace.tx_index) not in tx_grouped_traces:
-            tx_grouped_traces.update({(trace.block_number, trace.tx_index): []})
+        if (trace.block_number, trace.transaction_index) not in tx_grouped_traces:
+            tx_grouped_traces.update({(trace.block_number, trace.transaction_index): []})
 
-        tx_grouped_traces[(trace.block_number, trace.tx_index)].append(trace)
+        tx_grouped_traces[(trace.block_number, trace.transaction_index)].append(trace)
 
     output_traces = []
 
@@ -474,3 +475,24 @@ def replace_delegate_calls_for_tx(traces: list[Trace]) -> list[Trace]:
         output_traces.append(trace)
 
     return output_traces
+
+
+def parse_traces_into_calls(traces: list[Trace]) -> list[TraceCall]:
+    """
+    Given a list of traces, parse them into a list of TraceCall dataclasses
+    """
+    return [
+        TraceCall(
+            block_number=trace.block_number,
+            transaction_index=trace.transaction_index,
+            trace_address=trace.trace_address,
+            class_hash=trace.class_hash,
+            caller_address=trace.caller_address,
+            contract_address=trace.contract_address,
+            function_name=trace.function_name,
+            decoded_inputs=trace.decoded_inputs,
+            decoded_outputs=trace.decoded_outputs,
+        )
+        for trace in traces
+        if trace.function_name is not None
+    ]

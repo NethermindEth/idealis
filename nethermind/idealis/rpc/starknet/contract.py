@@ -300,6 +300,7 @@ async def get_class_history(
             from_block=from_block,
             to_block=to_block,
         )
+        assert old_class is not None, f"Contract cannot upgrade its implementation to None"
         implementation_history.update({from_block: to_hex(old_class, pad=32)})
 
     return implementation_history
@@ -358,6 +359,8 @@ async def get_proxy_impl_history(
             to_block=to_block,
         )
 
+        assert initial_impl is not None, f"Proxy cannot upgrade it implementation to None"
+
         proxy_history.update({str(from_block): to_hex(initial_impl, pad=32)})
 
     return proxy_history
@@ -379,7 +382,7 @@ async def generate_contract_implementation(
 
     class_history_items = list(class_history.items())
 
-    contract_impl_history = {}
+    contract_impl_history: dict[str, str | dict[str, str]] = {}
 
     for item_idx, (block, class_hash) in enumerate(class_history_items):
         # runs once for each unique impl class of the contract
@@ -390,6 +393,9 @@ async def generate_contract_implementation(
         if not is_proxy:
             contract_impl_history.update({str(block): class_hash})
             continue
+
+        if proxy_method is None:
+            raise ValueError(f"Class {class_hash} is a proxy, but has no proxy method")
 
         # Proxy Handling Logic
         if len(class_history_items) - 1 == item_idx:

@@ -18,11 +18,11 @@ def unpack_debug_trace_block_response(
     return_create_traces = []
     return_events = []
 
-    for tx_index, tx_trace_dict in enumerate(block_traces):
+    for transaction_index, tx_trace_dict in enumerate(block_traces):
         call_traces, create_traces, events = unpack_debug_trace_transaction_response(
             trace_dict=tx_trace_dict,
             block_number=block_number,
-            transaction_index=tx_index,
+            transaction_index=transaction_index,
         )
         return_call_traces += call_traces
         return_create_traces += create_traces

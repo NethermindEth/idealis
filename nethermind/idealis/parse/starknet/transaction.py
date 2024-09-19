@@ -18,9 +18,9 @@ from nethermind.starknet_abi.utils import starknet_keccak
 def parse_transaction(
     tx_data: dict[str, Any],
     block_number: int,
-    tx_index: int,
+    transaction_index: int,
     block_timestamp: int,
-):
+) -> TransactionResponse:
     tx_type = StarknetTxType(tx_data["type"])
     tx_version = hex_to_int(tx_data["version"])
 
@@ -46,7 +46,7 @@ def parse_transaction(
     return TransactionResponse(
         transaction_hash=to_bytes(tx_data["transaction_hash"], pad=32),
         block_number=block_number,
-        transaction_index=tx_index,
+        transaction_index=transaction_index,
         type=tx_type,
         nonce=hex_to_int(tx_data.get("nonce", "0x0")),
         timestamp=block_timestamp,
@@ -96,12 +96,12 @@ def tx_status_from_receipt(execution_status: str | None, finality_status: str | 
 
 
 def parse_transaction_with_receipt(
-    tx_response: dict[str, Any], block_number: int, tx_index: int, block_timestamp: int
+    tx_response: dict[str, Any], block_number: int, transaction_index: int, block_timestamp: int
 ) -> tuple[TransactionResponse, list[Event]]:
     tx_data = tx_response["transaction"]
     tx_receipt = tx_response["receipt"]
 
-    parsed_transaction = parse_transaction(tx_data, block_number, tx_index, block_timestamp)
+    parsed_transaction = parse_transaction(tx_data, block_number, transaction_index, block_timestamp)
 
     actual_fee = tx_receipt.get("actual_fee", {})
 
@@ -115,7 +115,7 @@ def parse_transaction_with_receipt(
     events = [
         Event(
             block_number=block_number,
-            transaction_index=tx_index,
+            transaction_index=transaction_index,
             event_index=event_index,
             class_hash=b"",  # Event class hashes are unknown to tx receipts.  Use contract mapping
             contract_address=to_bytes(event_dict["from_address"], pad=32),
@@ -141,31 +141,12 @@ class FilteredTransactions:
 def filter_transactions_by_type(
     transactions: list[TransactionResponse],
 ) -> FilteredTransactions:
-    invoke = []
-    declare = []
-    deploy = []
-    deploy_account = []
-    l1_handler = []
-
-    for tx in transactions:
-        match tx.type:
-            case StarknetTxType.invoke:
-                invoke.append(tx)
-            case StarknetTxType.declare:
-                declare.append(tx)
-            case StarknetTxType.deploy:
-                deploy.append(tx)
-            case StarknetTxType.deploy_account:
-                deploy_account.append(tx)
-            case StarknetTxType.l1_handler:
-                l1_handler.append(tx)
-
     return FilteredTransactions(
-        invoke_transactions=invoke,
-        declare_transactions=declare,
-        deploy_transactions=deploy,
-        deploy_account_transactions=deploy_account,
-        l1_handler_transactions=l1_handler,
+        invoke_transactions=[tx for tx in transactions if tx.type == StarknetTxType.invoke],
+        declare_transactions=[tx for tx in transactions if tx.type == StarknetTxType.declare],
+        deploy_transactions=[tx for tx in transactions if tx.type == StarknetTxType.deploy],
+        deploy_account_transactions=[tx for tx in transactions if tx.type == StarknetTxType.deploy_account],
+        l1_handler_transactions=[tx for tx in transactions if tx.type == StarknetTxType.l1_handler],
     )
 
 
