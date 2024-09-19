@@ -18,7 +18,7 @@ from nethermind.starknet_abi.utils import starknet_keccak
 def parse_transaction(
     tx_data: dict[str, Any],
     block_number: int,
-    tx_index: int,
+    transaction_index: int,
     block_timestamp: int,
 ) -> TransactionResponse:
     tx_type = StarknetTxType(tx_data["type"])
@@ -46,7 +46,7 @@ def parse_transaction(
     return TransactionResponse(
         transaction_hash=to_bytes(tx_data["transaction_hash"], pad=32),
         block_number=block_number,
-        transaction_index=tx_index,
+        transaction_index=transaction_index,
         type=tx_type,
         nonce=hex_to_int(tx_data.get("nonce", "0x0")),
         timestamp=block_timestamp,
@@ -96,12 +96,12 @@ def tx_status_from_receipt(execution_status: str | None, finality_status: str | 
 
 
 def parse_transaction_with_receipt(
-    tx_response: dict[str, Any], block_number: int, tx_index: int, block_timestamp: int
+    tx_response: dict[str, Any], block_number: int, transaction_index: int, block_timestamp: int
 ) -> tuple[TransactionResponse, list[Event]]:
     tx_data = tx_response["transaction"]
     tx_receipt = tx_response["receipt"]
 
-    parsed_transaction = parse_transaction(tx_data, block_number, tx_index, block_timestamp)
+    parsed_transaction = parse_transaction(tx_data, block_number, transaction_index, block_timestamp)
 
     actual_fee = tx_receipt.get("actual_fee", {})
 
@@ -115,7 +115,7 @@ def parse_transaction_with_receipt(
     events = [
         Event(
             block_number=block_number,
-            transaction_index=tx_index,
+            transaction_index=transaction_index,
             event_index=event_index,
             class_hash=b"",  # Event class hashes are unknown to tx receipts.  Use contract mapping
             contract_address=to_bytes(event_dict["from_address"], pad=32),

@@ -88,9 +88,29 @@ class TransactionResponse:
 
 
 @dataclass(slots=True)
+class TraceCall(DataclassDBInterface):
+    """
+    Condensed schema for trace data with just caller & recipient information & decoded data.
+    Subset of Trace
+    """
+
+    block_number: int
+    transaction_index: int
+    trace_address: list[int]
+
+    class_hash: bytes
+    caller_address: bytes
+    contract_address: bytes
+
+    function_name: str
+    decoded_inputs: dict[str, Any] | None
+    decoded_outputs: dict[str, Any] | None
+
+
+@dataclass(slots=True)
 class Trace(DataclassDBInterface):
     block_number: int
-    tx_index: int
+    transaction_index: int
     trace_address: list[int]
     contract_address: bytes
     selector: bytes
@@ -133,7 +153,7 @@ class Event(DataclassDBInterface):
 @dataclass(slots=True)
 class Message:
     block_number: int
-    tx_index: int
+    transaction_index: int
     message_index: int
 
     contract_address: str

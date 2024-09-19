@@ -300,6 +300,7 @@ async def get_class_history(
             from_block=from_block,
             to_block=to_block,
         )
+        assert old_class is not None, f"Contract cannot upgrade its implementation to None"
         implementation_history.update({from_block: to_hex(old_class, pad=32)})
 
     return implementation_history
