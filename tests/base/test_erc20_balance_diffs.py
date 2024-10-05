@@ -1,7 +1,7 @@
 from idlelib.pyparse import trans
 
 from nethermind.idealis.parse.shared.erc_20_tokens import (
-    ERC20BalanceDiffs,
+    ERC20BalanceDiff,
     ERC20Transfer,
     generate_balance_diffs,
 )

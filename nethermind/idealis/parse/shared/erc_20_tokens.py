@@ -2,7 +2,7 @@ import warnings
 
 from mypy.state import state
 
-from nethermind.idealis.types.base.tokens import ERC20BalanceDiffs, ERC20Transfer
+from nethermind.idealis.types.base.tokens import ERC20BalanceDiff, ERC20Transfer
 from nethermind.idealis.utils import to_bytes
 
 NULL_ADDRESS = {
@@ -141,8 +141,11 @@ def apply_transfers_to_balance_state(
     return balance_state
 
 
-def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int):
-    state_map: dict[bytes, dict[bytes, ERC20BalanceDiffs]] = {}
+def generate_balance_diffs(
+    transfers: list[ERC20Transfer],
+    reference_block: int
+) -> list[ERC20BalanceDiff]:
+    state_map: dict[bytes, dict[bytes, ERC20BalanceDiff]] = {}
 
     for transfer in transfers:
         # Dont update account balances if sending from 0x00 address
@@ -151,7 +154,7 @@ def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int)
                 debit_account_balance = state_map[transfer.token_address][transfer.from_address]
                 debit_account_balance.balance_diff -= transfer.value
             except KeyError:
-                balance_diff = ERC20BalanceDiffs(
+                balance_diff = ERC20BalanceDiff(
                     token_address=transfer.token_address,
                     holder_address=transfer.from_address,
                     block_number=reference_block,
@@ -168,7 +171,7 @@ def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int)
                 credit_account_balance = state_map[transfer.token_address][transfer.to_address]
                 credit_account_balance.balance_diff += transfer.value
             except KeyError:
-                balance_diff = ERC20BalanceDiffs(
+                balance_diff = ERC20BalanceDiff(
                     token_address=transfer.token_address,
                     holder_address=transfer.to_address,
                     block_number=reference_block,

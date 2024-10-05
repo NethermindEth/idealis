@@ -46,7 +46,7 @@ class ERC721Transfer(DataclassDBInterface):
 
 
 @dataclass(slots=True)
-class ERC20BalanceDiffs(DataclassDBInterface):
+class ERC20BalanceDiff(DataclassDBInterface):
     token_address: bytes
     holder_address: bytes
     block_number: int
