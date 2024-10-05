@@ -2,9 +2,7 @@ import pytest
 
 from nethermind.idealis.rpc.starknet.core import get_current_block
 from nethermind.idealis.rpc.starknet.deployed import get_erc20_info
-from nethermind.idealis.utils import to_bytes
-
-STARKNET_ETH = to_bytes("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
+from tests.addresses import STARKNET_ETH
 
 
 @pytest.mark.asyncio

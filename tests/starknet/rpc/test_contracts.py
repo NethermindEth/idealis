@@ -10,6 +10,7 @@ from nethermind.idealis.rpc.starknet.contract import (
 )
 from nethermind.idealis.utils import to_bytes, to_hex
 from nethermind.starknet_abi.utils import starknet_keccak
+from tests.addresses import STARKNET_ETH
 
 
 @pytest.mark.asyncio
@@ -161,7 +162,6 @@ async def test_get_contract_null_implementation(starknet_rpc_url, async_http_ses
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_complex_proxy_to_native_contract(starknet_rpc_url, async_http_session, starknet_class_decoder):
-    starknet_eth_address = to_bytes("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
     starknet_eth_proxy = to_bytes("0x048624e084dc68d82076582219c7ed8cb0910c01746cca3cd72a28ecfe07e42d")
 
     impl_a = "0x00d0e183745e9dae3e4e78a8ffedcce0903fc4900beace4e0abf192d4c202da3"
@@ -182,7 +182,7 @@ async def test_complex_proxy_to_native_contract(starknet_rpc_url, async_http_ses
         class_decoder=class_decoder,
         aiohttp_session=async_http_session,
         rpc_url=starknet_rpc_url,
-        contract_address=starknet_eth_address,
+        contract_address=STARKNET_ETH,
         to_block=637_000,
     )
 
@@ -209,20 +209,18 @@ async def test_complex_proxy_to_native_contract(starknet_rpc_url, async_http_ses
     assert proxy_impl.history == {"2810": proxy_impl_addr}
 
     contract_mapping = {
-        starknet_eth_address: starknet_eth_impl,
+        STARKNET_ETH: starknet_eth_impl,
         starknet_eth_proxy: proxy_impl,
     }
 
-    assert get_decode_class(starknet_eth_address, contract_mapping, 3000) == to_bytes(proxy_impl_addr)
+    assert get_decode_class(STARKNET_ETH, contract_mapping, 3000) == to_bytes(proxy_impl_addr)
 
-    assert get_decode_class(starknet_eth_address, contract_mapping, 600_000) == to_bytes(impl_b)
+    assert get_decode_class(STARKNET_ETH, contract_mapping, 600_000) == to_bytes(impl_b)
 
 
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_update_contract_impl(starknet_rpc_url, async_http_session, starknet_class_decoder):
-    starknet_eth_address = to_bytes("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
-
     class_decoder = await starknet_class_decoder(
         [
             to_bytes("0x00d0e183745e9dae3e4e78a8ffedcce0903fc4900beace4e0abf192d4c202da3"),
@@ -236,7 +234,7 @@ async def test_update_contract_impl(starknet_rpc_url, async_http_session, starkn
         class_decoder=class_decoder,
         aiohttp_session=async_http_session,
         rpc_url=starknet_rpc_url,
-        contract_address=starknet_eth_address,
+        contract_address=STARKNET_ETH,
         to_block=640_000,
     )
 
@@ -244,7 +242,7 @@ async def test_update_contract_impl(starknet_rpc_url, async_http_session, starkn
         class_decoder=class_decoder,
         aiohttp_session=async_http_session,
         rpc_url=starknet_rpc_url,
-        contract_address=starknet_eth_address,
+        contract_address=STARKNET_ETH,
         to_block=200_000,
     )
 

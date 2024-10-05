@@ -1,12 +1,14 @@
 import warnings
 
-from nethermind.idealis.types.base import ERC20Transfer
+from mypy.state import state
+
+from nethermind.idealis.types.base.tokens import ERC20BalanceDiffs, ERC20Transfer
 from nethermind.idealis.utils import to_bytes
 
-NULL_ADDRESS = [
+NULL_ADDRESS = {
     to_bytes("0x00", pad=32),
     to_bytes("0x00", pad=20),
-]
+}
 
 
 def _apply_credits(
@@ -137,3 +139,50 @@ def apply_transfers_to_balance_state(
         _apply_debits(balance_state, transfer)  # Debit balances based on from_address
 
     return balance_state
+
+
+def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int):
+    state_map: dict[bytes, dict[bytes, ERC20BalanceDiffs]] = {}
+
+    for transfer in transfers:
+        # Dont update account balances if sending from 0x00 address
+        if transfer.from_address not in NULL_ADDRESS:
+            try:
+                debit_account_balance = state_map[transfer.token_address][transfer.from_address]
+                debit_account_balance.balance_diff -= transfer.value
+            except KeyError:
+                balance_diff = ERC20BalanceDiffs(
+                    token_address=transfer.token_address,
+                    holder_address=transfer.from_address,
+                    block_number=reference_block,
+                    balance_diff=-transfer.value,
+                )
+
+                if transfer.token_address in state_map:
+                    state_map[transfer.token_address].update({transfer.from_address: balance_diff})
+                else:
+                    state_map.update({transfer.token_address: {transfer.from_address: balance_diff}})
+
+        if transfer.to_address not in NULL_ADDRESS:
+            try:
+                credit_account_balance = state_map[transfer.token_address][transfer.to_address]
+                credit_account_balance.balance_diff += transfer.value
+            except KeyError:
+                balance_diff = ERC20BalanceDiffs(
+                    token_address=transfer.token_address,
+                    holder_address=transfer.to_address,
+                    block_number=reference_block,
+                    balance_diff=transfer.value,
+                )
+
+                if transfer.token_address in state_map:
+                    state_map[transfer.token_address].update({transfer.to_address: balance_diff})
+                else:
+                    state_map.update({transfer.token_address: {transfer.to_address: balance_diff}})
+
+    balance_diffs = []
+
+    for token_balances in state_map.values():
+        balance_diffs.extend([diff for diff in token_balances.values() if diff.balance_diff != 0])
+
+    return balance_diffs
