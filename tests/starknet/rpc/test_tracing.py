@@ -11,7 +11,7 @@ async def test_get_tx_trace(starknet_rpc_url, async_http_session):
         rpc_url=starknet_rpc_url,
         aiohttp_session=async_http_session,
         block_number=480_000,
-        tx_index=1,
+        transaction_index=1,
     )
 
     assert transaction_traces is not None

@@ -2,7 +2,7 @@ from typing import Any
 
 from nethermind.idealis.types.base import ERC20Transfer, ERC721Transfer
 from nethermind.idealis.types.starknet.core import Event
-from nethermind.idealis.utils import to_bytes
+from nethermind.idealis.utils import hex_to_int, to_bytes
 from nethermind.starknet_abi.utils import starknet_keccak
 
 TRANSFER_SIGNATURE = starknet_keccak(b"Transfer")
@@ -65,13 +65,18 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                     | ["from_", "to", "value"]
                     | ["amount", "from", "to"]
                     | ["from", "tick", "to", "value"]
+                    | ["amount", "asset", "from", "to"]
                 ):
                     # Standard ERC20 transfers
+                    from_addr = event.decoded_params.get("from") or event.decoded_params["from_"]
+                    to_addr = event.decoded_params["to"]
+                    val = event.decoded_params.get("value") or event.decoded_params["amount"]
+
                     erc_20_transfers.append(
                         ERC20Transfer(
-                            from_address=event.decoded_params.get("from") or event.decoded_params["from_"],
-                            to_address=event.decoded_params["to"],
-                            value=event.decoded_params.get("value") or event.decoded_params["amount"],
+                            from_address=to_bytes(from_addr, pad=32),
+                            to_address=to_bytes(to_addr, pad=32),
+                            value=int(val),
                             **shared_params,  # type: ignore
                         )
                     )
@@ -79,9 +84,9 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                 case ["counter", "from", "to", "value"]:
                     erc_20_transfers.append(
                         ERC20Transfer(
-                            from_address=event.decoded_params["from"],
-                            to_address=event.decoded_params["to"],
-                            value=event.decoded_params["value"],
+                            from_address=to_bytes(event.decoded_params["from"], pad=32),
+                            to_address=to_bytes(event.decoded_params["to"], pad=32),
+                            value=int(event.decoded_params["value"]),
                             **shared_params,  # type: ignore
                         )
                     )
@@ -89,9 +94,9 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                 case ["amount", "from_address", "to_address"]:
                     erc_20_transfers.append(
                         ERC20Transfer(
-                            from_address=event.decoded_params["from_address"],
-                            to_address=event.decoded_params["to_address"],
-                            value=event.decoded_params["amount"],
+                            from_address=to_bytes(event.decoded_params["from_address"], pad=32),
+                            to_address=to_bytes(event.decoded_params["to_address"], pad=32),
+                            value=int(event.decoded_params["amount"]),
                             **shared_params,  # type: ignore
                         )
                     )
@@ -99,9 +104,9 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                 case ["recipient", "sender", "value"]:
                     erc_20_transfers.append(
                         ERC20Transfer(
-                            from_address=event.decoded_params["sender"],
-                            to_address=event.decoded_params["recipient"],
-                            value=event.decoded_params["value"],
+                            from_address=to_bytes(event.decoded_params["sender"], pad=32),
+                            to_address=to_bytes(event.decoded_params["recipient"], pad=32),
+                            value=int(event.decoded_params["value"]),
                             **shared_params,  # type: ignore
                         )
                     )
@@ -113,18 +118,22 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                 case ["from", "to", "token_id"]:  # Standard ERC721 transfers
                     erc_721_transfers.append(
                         ERC721Transfer(
-                            from_address=event.decoded_params["from"],
-                            to_address=event.decoded_params["to"],
-                            token_id=event.decoded_params["token_id"],
+                            from_address=to_bytes(event.decoded_params["from"], pad=32),
+                            to_address=to_bytes(event.decoded_params["to"], pad=32),
+                            token_id=to_bytes(event.decoded_params["token_id"]),
                             **shared_params,  # type: ignore
                         )
                     )
                 case (["_from", "_to", "_tokenId"] | ["_from", "to", "tokenId"] | ["from_", "to", "tokenId"]):
+                    from_addr = event.decoded_params.get("_from") or event.decoded_params["from_"]
+                    to_addr = event.decoded_params.get("to") or event.decoded_params["_to"]
+                    token_id = event.decoded_params.get("tokenId") or event.decoded_params["_tokenId"]
+
                     erc_721_transfers.append(
                         ERC721Transfer(
-                            from_address=event.decoded_params.get("_from") or event.decoded_params["from_"],
-                            to_address=event.decoded_params.get("to") or event.decoded_params["_to"],
-                            token_id=event.decoded_params.get("tokenId") or event.decoded_params["_tokenId"],
+                            from_address=to_bytes(from_addr, pad=32),
+                            to_address=to_bytes(to_addr, pad=32),
+                            token_id=to_bytes(token_id),
                             **shared_params,  # type: ignore
                         )
                     )

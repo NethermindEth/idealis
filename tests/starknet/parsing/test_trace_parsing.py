@@ -52,7 +52,7 @@ def test_replace_trace_delegate_calls():
     json_resp = load_rpc_response("starknet", "trace_block_480_000.json")
     traces = unpack_trace_block_response(json_resp, 480_000)
 
-    execute_traces = [t for t in traces.execute_traces if t.tx_index == 1]
+    execute_traces = [t for t in traces.execute_traces if t.transaction_index == 1]
     call_traces: list[Trace] = replace_delegate_calls(execute_traces)
 
     assert call_traces[0].trace_address == [0]
@@ -89,7 +89,7 @@ def test_group_traces():
     json_resp = load_rpc_response("starknet", "trace_block_480_000.json")
     traces = unpack_trace_block_response(json_resp, 480_000)
 
-    execute_traces = [t for t in traces.execute_traces if t.tx_index == 5]
+    execute_traces = [t for t in traces.execute_traces if t.transaction_index == 5]
     call_traces = replace_delegate_calls(execute_traces)
 
     grouped_calls = group_traces(call_traces)
@@ -151,7 +151,7 @@ def test_parse_constructor_trace():
 
 empty_trace = {
     "block_number": 0,
-    "tx_index": 0,
+    "transaction_index": 0,
     "contract_address": b'',
     "calldata": [],
     "result": [],
