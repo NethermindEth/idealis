@@ -1,7 +1,5 @@
 import warnings
 
-from mypy.state import state
-
 from nethermind.idealis.types.base.tokens import ERC20BalanceDiff, ERC20Transfer
 from nethermind.idealis.utils import to_bytes
 
