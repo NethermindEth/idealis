@@ -103,13 +103,15 @@ def test_parse_erc20_events(params, expected_from, expected_to, expected_value):
     [
         # fmt: off
         ({"to": ADDR_3_HEX, "from": ADDR_1_HEX, "token_id": ID_0_HEX}, ADDR_1, ADDR_3, ID_0),
+        ({"to": ADDR_3_HEX, "from": ADDR_0_HEX, "token_id": 255}, ADDR_0, ADDR_3, to_bytes('0xff')),
         ({"to": ADDR_3_HEX, "from_": ADDR_1_HEX, "tokenId": ID_1_HEX}, ADDR_1, ADDR_3, ID_1),
         ({"_to": ADDR_2_HEX, "_from": ADDR_3_HEX, "_tokenId": ID_0_HEX}, ADDR_3, ADDR_2, ID_0),
         ({"to": ADDR_2_HEX,"_from": ADDR_0_HEX,"tokenId": ID_1_HEX}, ADDR_0, ADDR_2, ID_1),
         # fmt: on
     ],
     ids=[
-        "standard_snake",
+        "standard_hex",
+        "standard_integer",
         "underscored_from",
         "underscore_prefixed",
         "prefixed_from",
