@@ -139,10 +139,7 @@ def apply_transfers_to_balance_state(
     return balance_state
 
 
-def generate_balance_diffs(
-    transfers: list[ERC20Transfer],
-    reference_block: int
-) -> list[ERC20BalanceDiff]:
+def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int) -> list[ERC20BalanceDiff]:
     state_map: dict[bytes, dict[bytes, ERC20BalanceDiff]] = {}
 
     for transfer in transfers:

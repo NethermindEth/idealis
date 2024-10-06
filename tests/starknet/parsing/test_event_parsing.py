@@ -9,13 +9,13 @@ ADDR_1 = to_bytes("0x0000abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefa
 ADDR_2 = to_bytes("0x0000012345678901234567890123456789012345678901234567890123456789")
 ADDR_3 = to_bytes("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
 
-ID_0 = b"\x00" * 32
-ID_1 = to_bytes("0x0000000000000000001111111110000000000000111111111111111100000000")
+ID_0_HEX = "0x0000000000000000000000000000000000000000000000000000000000000000"
+ID_1_HEX = "0x0000000000000000001111111110000000000000111111111111111100000000"
+ID_0 = to_bytes("0x00")
+ID_1 = to_bytes("0x1111111110000000000000111111111111111100000000")
 
 ADDR_0_HEX, ADDR_1_HEX = "0x" + ADDR_0.hex(), "0x" + ADDR_1.hex()
 ADDR_2_HEX, ADDR_3_HEX = "0x" + ADDR_2.hex(), "0x" + ADDR_3.hex()
-
-ID_0_HEX, ID_1_HEX = "0x" + ID_0.hex(), "0x" + ID_1.hex()
 
 
 EVENT_DEFAULTS = {
@@ -107,6 +107,8 @@ def test_parse_erc20_events(params, expected_from, expected_to, expected_value):
         ({"to": ADDR_3_HEX, "from_": ADDR_1_HEX, "tokenId": ID_1_HEX}, ADDR_1, ADDR_3, ID_1),
         ({"_to": ADDR_2_HEX, "_from": ADDR_3_HEX, "_tokenId": ID_0_HEX}, ADDR_3, ADDR_2, ID_0),
         ({"to": ADDR_2_HEX,"_from": ADDR_0_HEX,"tokenId": ID_1_HEX}, ADDR_0, ADDR_2, ID_1),
+        ({'from_': '0x00', 'to': ADDR_2_HEX, 'tokenId': 0}, ADDR_0, ADDR_2, to_bytes('0x00')),
+        ({'from_': '0x00', 'to': ADDR_2_HEX, 'tokenId': '0x00'}, ADDR_0, ADDR_2, to_bytes('0x00')),
         # fmt: on
     ],
     ids=[
@@ -115,6 +117,8 @@ def test_parse_erc20_events(params, expected_from, expected_to, expected_value):
         "underscored_from",
         "underscore_prefixed",
         "prefixed_from",
+        "zero_token_id",
+        "zero_token_id_hex",
     ],
 )
 def test_parse_erc_721_events(params, expected_from, expected_to, expected_id):
