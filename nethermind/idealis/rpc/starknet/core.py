@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Any, Sequence
 
@@ -139,7 +140,12 @@ async def get_blocks_with_txns(
     return out_blocks, out_txns, out_events
 
 
-def sync_get_class_abi(class_hash: bytes, rpc_url: str) -> list[dict[str, Any]] | None:
+def sync_get_class_abi(
+    class_hash: bytes,
+    rpc_url: str,
+    block_number: int | None = None,
+    timeout: int = 40,
+) -> list[dict[str, Any]] | None:
     """
     Synchronously get the ABI of a Starknet class.
     """
@@ -150,10 +156,10 @@ def sync_get_class_abi(class_hash: bytes, rpc_url: str) -> list[dict[str, Any]] 
         json={
             "jsonrpc": "2.0",
             "method": "starknet_getClass",
-            "params": {"class_hash": to_hex(class_hash), "block_id": "latest"},
+            "params": {"class_hash": to_hex(class_hash), "block_id": _starknet_block_id(block_number or "latest")},
             "id": 1,
         },
-        timeout=40,
+        timeout=timeout,
     )
 
     class_json = class_response.json()
@@ -162,9 +168,25 @@ def sync_get_class_abi(class_hash: bytes, rpc_url: str) -> list[dict[str, Any]] 
         return None
 
     try:
-        return class_json["result"]["abi"]
+        rpc_abi_response = class_json["result"]["abi"]
     except KeyError:
         raise RPCError(f"Error fetching Starknet class ABI for {to_hex(class_hash)}: {class_json}")
+
+    if isinstance(rpc_abi_response, str):
+        try:
+            class_abi = json.loads(rpc_abi_response)
+        except json.JSONDecodeError:
+            logger.error(f"Invalid ABI for class 0x{class_hash.hex()}.  Could not parse ABI JSON...")
+            return None
+    else:
+        # ABI Is already decoded into dict with response.json()
+        class_abi = rpc_abi_response
+
+    if class_abi is None or len(class_abi) == 0:
+        logger.warning(f"Empty ABI for class 0x{class_hash.hex()}")
+        return None
+
+    return class_abi
 
 
 async def get_class_abis(

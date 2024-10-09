@@ -112,6 +112,10 @@ def parse_transaction_with_receipt(
     )
     parsed_transaction.execution_resources = tx_receipt.get("execution_resources", {})
 
+    if parsed_transaction.contract_address is None:
+        receipt_addr = tx_receipt.get("contract_address")
+        parsed_transaction.contract_address = to_bytes(receipt_addr, pad=32) if receipt_addr else None
+
     events = [
         Event(
             block_number=block_number,

@@ -4,21 +4,14 @@ from bisect import bisect_right
 import requests
 from aiohttp import ClientSession
 
+from nethermind.idealis.parse.starknet.abi import is_dispatcher_impl_proxy
 from nethermind.idealis.rpc.starknet.core import (
     _starknet_block_id,
     sync_get_current_block,
 )
 from nethermind.idealis.types.starknet.contracts import ContractImplementation
 from nethermind.idealis.utils import to_bytes, to_hex
-from nethermind.starknet_abi.abi_types import StarknetCoreType
 from nethermind.starknet_abi.dispatch import DecodingDispatcher
-from nethermind.starknet_abi.utils import starknet_keccak
-
-GET_CAMEL_SELECTOR = starknet_keccak(b"getImplementation")
-GET_SNAKE_SELECTOR = starknet_keccak(b"get_implementation")
-GET_HASH_CAMEL_SELECTOR = starknet_keccak(b"getImplementationHash")
-GET_HASH_SNAKE_SELECTOR = starknet_keccak(b"get_implementation_hash")
-IMPL_SNAKE_SELECTOR = starknet_keccak(b"implementation")
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("starknet").getChild("rpc").getChild("contracts")
@@ -68,58 +61,6 @@ def is_class(felt: bytes, rpc_url: str) -> bool:
         timeout=40,
     )
     return "error" not in response.json()
-
-
-def _is_proxy(decoder: DecodingDispatcher, target_impl: bytes) -> tuple[bool, bytes | None]:
-    """
-
-    :param decoder:
-    :param target_impl:
-    :return:  [is-proxy, proxy-method-selector]
-    """
-
-    target_impl_abi = decoder.get_class(target_impl)
-
-    if target_impl_abi is None:
-        logger.error(f"ABI for class 0x{target_impl.hex()} not in ABI Decoder")
-        return False, None
-
-    if GET_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_SNAKE_SELECTOR
-
-    elif GET_HASH_CAMEL_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_HASH_CAMEL_SELECTOR
-
-    elif GET_CAMEL_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_CAMEL_SELECTOR
-
-    elif GET_HASH_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_HASH_SNAKE_SELECTOR
-
-    elif IMPL_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = IMPL_SNAKE_SELECTOR
-
-    else:
-        proxy_method_selector = None
-
-    if proxy_method_selector is None:
-        return False, None
-
-    function_type_id = target_impl_abi.function_ids[proxy_method_selector[-8:]].decoder_reference
-    _, output_types = decoder.function_types[function_type_id]
-
-    if len(output_types) != 1 or output_types[0] not in [  # implementation function returns single value
-        StarknetCoreType.Felt,
-        StarknetCoreType.ContractAddress,
-        StarknetCoreType.ClassHash,
-    ]:
-        raise ValueError(
-            f"Class 0x{target_impl.hex()} implements a proxy method 0x{proxy_method_selector.hex()} "
-            f"which returns an invalid ABI Type: [{','.join(t.id_str() for t in output_types)}] -- "
-            f"Proxy functions must return [Felt] or [ContractAddress]"
-        )
-
-    return True, proxy_method_selector
 
 
 async def get_implemented_class(
@@ -388,7 +329,7 @@ async def generate_contract_implementation(
         # runs once for each unique impl class of the contract
 
         # Check if the class has a proxy method, and the selector of this method
-        is_proxy, proxy_method = _is_proxy(class_decoder, to_bytes(class_hash, pad=32))
+        is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, to_bytes(class_hash, pad=32))
 
         if not is_proxy:
             contract_impl_history.update({str(block): class_hash})
@@ -469,7 +410,7 @@ async def update_contract_implementation(
         # Update Root Class History
         contract_history.history.update({str(k): v for k, v in class_history.items()})
 
-    latest_root_proxy, latest_root_proxy_method = _is_proxy(class_decoder, latest_root_impl)
+    latest_root_proxy, latest_root_proxy_method = is_dispatcher_impl_proxy(class_decoder, latest_root_impl)
 
     if latest_root_impl == target_implementation and not latest_root_proxy:
         # Implementation has not changed, and current root class is not proxy
@@ -488,7 +429,7 @@ async def update_contract_implementation(
             to_bytes(root_impl, pad=32) if isinstance(root_impl, str) else to_bytes(root_impl["proxy_class"], pad=32)
         )
 
-        is_proxy, proxy_method = _is_proxy(class_decoder, root_impl_class)
+        is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, root_impl_class)
 
         if proxy_method is None:  # If proxy method is none, is_proxy is false
             continue  # No need to update proxy impls

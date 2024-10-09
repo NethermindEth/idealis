@@ -1,7 +1,4 @@
-from idlelib.pyparse import trans
-
 from nethermind.idealis.parse.shared.erc_20_tokens import (
-    ERC20BalanceDiff,
     ERC20Transfer,
     generate_balance_diffs,
 )
@@ -90,7 +87,7 @@ def test_multi_token_transfer_state():
     ]
 
     transfer_diffs = generate_balance_diffs(transfers, 100)
-    assert len(transfer_diffs) == 2
+    assert len(transfer_diffs) == 3
 
     account_2 = [d for d in transfer_diffs if d.holder_address == STARKNET_ACCOUNT_2]
     assert len(account_2) == 2

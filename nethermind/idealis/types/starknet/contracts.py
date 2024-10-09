@@ -1,5 +1,6 @@
 import pickle
 from dataclasses import dataclass
+from typing import Any
 
 from nethermind.idealis.types.base import DataclassDBInterface
 
@@ -45,3 +46,31 @@ class ContractImplementation(DataclassDBInterface):
             + 28  # __sizeof__() 8 byte C-integer + obj overhead
             + pickle.dumps(self.history).__sizeof__()  # size of history dict
         )
+
+
+@dataclass(slots=True)
+class ClassDeclaration(DataclassDBInterface):
+    class_hash: bytes
+    declaration_block: int
+    declaration_timestamp: int
+    declare_transaction_hash: bytes
+    class_version: int
+
+    is_account: bool
+    is_proxy: bool
+    is_erc_20: bool
+    is_erc_721: bool
+
+    compiler_version: str
+
+
+@dataclass(slots=True)
+class ContractDeployment(DataclassDBInterface):
+    contract_address: bytes
+    initial_class_hash: bytes
+
+    deploy_transaction_hash: bytes
+    deploy_block: int
+    deploy_timestamp: int
+
+    constructor_args: dict[str, Any] | None  # Decoded constructor args

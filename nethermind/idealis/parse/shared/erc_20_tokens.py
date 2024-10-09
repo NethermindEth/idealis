@@ -21,7 +21,7 @@ def _apply_credits(
 
     if transfer.to_address in NULL_ADDRESS:
         if balance_state[b"total_supply"] < transfer.value:
-            raise ValueError(f"Cannot Burn more tokens than the total supply")
+            raise ValueError("Cannot Burn more tokens than the total supply")
 
         balance_state[b"total_supply"] -= transfer.value
 
@@ -55,7 +55,7 @@ def generate_balance_state(transfers: list[ERC20Transfer]) -> dict[bytes, int]:
 
     for transfer in transfers:
         if transfer.value <= 0:
-            raise ValueError(f"Cannot parse negative token transfers")
+            raise ValueError("Cannot parse negative token transfers")
 
         _apply_credits(balance_state, transfer)
         _apply_debits(balance_state, transfer)
@@ -105,7 +105,7 @@ def generate_balance_state_history(
             last_snapshot += snapshot_frequency
 
         if transfer.value <= 0:
-            raise ValueError(f"Cannot parse negative token transfers")
+            raise ValueError("Cannot parse negative token transfers")
 
         _apply_credits(balance_state, transfer)  # Credit balances based on to_address
 
@@ -130,7 +130,7 @@ def apply_transfers_to_balance_state(
 
     for transfer in transfers:
         if transfer.value <= 0:
-            raise ValueError(f"Cannot parse negative token transfers")
+            raise ValueError("Cannot parse negative token transfers")
 
         _apply_credits(balance_state, transfer)  # Credit balances based on to_address
 
@@ -148,12 +148,14 @@ def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int)
             try:
                 debit_account_balance = state_map[transfer.token_address][transfer.from_address]
                 debit_account_balance.balance_diff -= transfer.value
+                debit_account_balance.transfer_count += 1
             except KeyError:
                 balance_diff = ERC20BalanceDiff(
                     token_address=transfer.token_address,
                     holder_address=transfer.from_address,
                     block_number=reference_block,
                     balance_diff=-transfer.value,
+                    transfer_count=1,
                 )
 
                 if transfer.token_address in state_map:
@@ -165,12 +167,14 @@ def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int)
             try:
                 credit_account_balance = state_map[transfer.token_address][transfer.to_address]
                 credit_account_balance.balance_diff += transfer.value
+                credit_account_balance.transfer_count += 1
             except KeyError:
                 balance_diff = ERC20BalanceDiff(
                     token_address=transfer.token_address,
                     holder_address=transfer.to_address,
                     block_number=reference_block,
                     balance_diff=transfer.value,
+                    transfer_count=1,
                 )
 
                 if transfer.token_address in state_map:
@@ -181,6 +185,6 @@ def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int)
     balance_diffs = []
 
     for token_balances in state_map.values():
-        balance_diffs.extend([diff for diff in token_balances.values() if diff.balance_diff != 0])
+        balance_diffs.extend(list(token_balances.values()))
 
     return balance_diffs

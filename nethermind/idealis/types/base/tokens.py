@@ -52,3 +52,4 @@ class ERC20BalanceDiff(DataclassDBInterface):
     block_number: int
 
     balance_diff: int
+    transfer_count: int

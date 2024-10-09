@@ -1,6 +1,6 @@
 import pytest
 
-from nethermind.idealis.rpc.starknet.contract import _is_proxy
+from nethermind.idealis.parse.starknet.abi import is_dispatcher_impl_proxy
 from nethermind.idealis.utils import to_bytes
 from nethermind.starknet_abi.utils import starknet_keccak
 
@@ -12,7 +12,7 @@ async def test_implementation_proxy(starknet_class_decoder):
 
     class_decoder = await starknet_class_decoder([class_hash])
 
-    is_proxy, proxy_method = _is_proxy(class_decoder, class_hash)
+    is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, class_hash)
     assert is_proxy
     assert proxy_method == starknet_keccak(b"implementation")
 
@@ -25,7 +25,7 @@ async def test_get_implementation_camel(starknet_class_decoder):
 
     class_decoder = await starknet_class_decoder([class_hash])
 
-    is_proxy, proxy_method = _is_proxy(class_decoder, class_hash)
+    is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, class_hash)
 
     assert is_proxy
     assert proxy_method == starknet_keccak(b"getImplementation")
@@ -39,7 +39,7 @@ async def test_get_implementation_snake(starknet_class_decoder):
 
     class_decoder = await starknet_class_decoder([class_hash])
 
-    is_proxy, proxy_method = _is_proxy(class_decoder, class_hash)
+    is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, class_hash)
     assert is_proxy
     assert proxy_method == starknet_keccak(b"get_implementation")
 
@@ -51,7 +51,7 @@ async def test_get_implementation_hash_proxy_camel(starknet_class_decoder):
 
     class_decoder = await starknet_class_decoder([class_hash])
 
-    is_proxy, proxy_method = _is_proxy(class_decoder, class_hash)
+    is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, class_hash)
 
     assert is_proxy
     assert proxy_method == starknet_keccak(b"getImplementationHash")
@@ -63,7 +63,7 @@ async def test_get_implementation_hash_snake(starknet_class_decoder):
 
     class_decoder = await starknet_class_decoder([class_hash])
 
-    is_proxy, proxy_method = _is_proxy(class_decoder, class_hash)
+    is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, class_hash)
 
     assert is_proxy
     assert proxy_method == starknet_keccak(b"get_implementation_hash")
