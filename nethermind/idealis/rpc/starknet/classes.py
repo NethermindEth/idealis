@@ -87,12 +87,10 @@ def get_class_declarations(
                 declaration_block=tx.block_number,
                 declaration_timestamp=tx.timestamp,
                 declare_transaction_hash=tx.transaction_hash,
-                class_version=-1,
                 is_account=is_class_account(declare_class_abi),
                 is_proxy=is_class_proxy(declare_class_abi),
                 is_erc_20=is_class_erc20_token(declare_class_abi),
                 is_erc_721=is_class_erc721_token(declare_class_abi),
-                compiler_version="",
             )
         )
 

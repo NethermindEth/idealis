@@ -54,14 +54,11 @@ class ClassDeclaration(DataclassDBInterface):
     declaration_block: int
     declaration_timestamp: int
     declare_transaction_hash: bytes
-    class_version: int
 
     is_account: bool
     is_proxy: bool
     is_erc_20: bool
     is_erc_721: bool
-
-    compiler_version: str
 
 
 @dataclass(slots=True)
