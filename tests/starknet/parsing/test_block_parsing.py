@@ -6,13 +6,13 @@ from tests.utils import load_rpc_response
 def test_parse_first_blocks():
     starknet_block = load_rpc_response("starknet", "get_block_with_txs_25.json")
 
-    block, transactions, events = parse_block_with_tx_receipts(starknet_block["result"])
+    block, transactions, events, messages = parse_block_with_tx_receipts(starknet_block["result"])
 
 
 def test_parsing_v0_13_1_block_response():
     starknet_13_1_block = load_rpc_response("starknet", "get_block_with_txs_623_436.json")
 
-    block, transactions, events = parse_block_with_tx_receipts(starknet_13_1_block["result"])
+    block, transactions, events, messages = parse_block_with_tx_receipts(starknet_13_1_block["result"])
     assert block.block_number == 623436
 
     assert len(transactions) == 191

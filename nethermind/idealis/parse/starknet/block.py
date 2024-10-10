@@ -1,14 +1,14 @@
 from typing import Any
 
+from nethermind.idealis.parse.starknet.transaction import parse_transaction_with_receipt
 from nethermind.idealis.types.starknet.core import (
     BlockResponse,
     Event,
     TransactionResponse,
 )
 from nethermind.idealis.types.starknet.enums import BlockDataAvailabilityMode
+from nethermind.idealis.types.starknet.rollup import OutgoingMessage
 from nethermind.idealis.utils import hex_to_int, to_bytes
-
-from .transaction import parse_transaction_with_receipt
 
 
 def parse_block(response_json: dict[str, Any]) -> BlockResponse:
@@ -32,18 +32,19 @@ def parse_block(response_json: dict[str, Any]) -> BlockResponse:
 
 def parse_block_with_tx_receipts(
     response_json: dict[str, Any]
-) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
+) -> tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]:
     block_response = parse_block(response_json)
 
-    transactions, all_events = [], []
+    transactions, all_events, all_messages = [], [], []
     for tx_idx, tx in enumerate(response_json["transactions"]):
-        tx_response, events = parse_transaction_with_receipt(
+        tx_response, events, messages = parse_transaction_with_receipt(
             tx, block_response.block_number, tx_idx, block_response.timestamp
         )
 
         transactions.append(tx_response)
         all_events.extend(events)
+        all_messages.extend(messages)
 
     block_response.total_fee = sum(tx.actual_fee for tx in transactions)
 
-    return block_response, transactions, all_events
+    return block_response, transactions, all_events, all_messages

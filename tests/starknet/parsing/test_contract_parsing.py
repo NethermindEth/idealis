@@ -30,6 +30,7 @@ default_tx_fields = {
     "constructor_calldata": [b""],
     "compiled_class_hash": None,
     "contract_address_salt": None,
+    "message_hash": None,
 }
 
 

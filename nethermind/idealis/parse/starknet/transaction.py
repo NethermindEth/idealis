@@ -11,6 +11,7 @@ from nethermind.idealis.types.starknet.enums import (
     StarknetTxType,
     TransactionStatus,
 )
+from nethermind.idealis.types.starknet.rollup import IncomingMessage, OutgoingMessage
 from nethermind.idealis.utils import hex_to_int, to_bytes
 from nethermind.starknet_abi.utils import starknet_keccak
 
@@ -68,12 +69,13 @@ def parse_transaction(
         paymaster_data=[to_bytes(paymaster_data) for paymaster_data in tx_data.get("paymaster_data", [])],
         fee_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
         nonce_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
-        # Legacy Transaction Fields
+        # Receipt Transaction Fields
         max_fee=hex_to_int(tx_data.get("max_fee", "0x0")),
         fee_unit=StarknetFeeUnit.wei,
         actual_fee=0,
         status=TransactionStatus.not_received,
         execution_resources={},
+        message_hash=None,
     )
 
 
@@ -96,8 +98,11 @@ def tx_status_from_receipt(execution_status: str | None, finality_status: str | 
 
 
 def parse_transaction_with_receipt(
-    tx_response: dict[str, Any], block_number: int, transaction_index: int, block_timestamp: int
-) -> tuple[TransactionResponse, list[Event]]:
+    tx_response: dict[str, Any],
+    block_number: int,
+    transaction_index: int,
+    block_timestamp: int,
+) -> tuple[TransactionResponse, list[Event], list[OutgoingMessage],]:
     tx_data = tx_response["transaction"]
     tx_receipt = tx_response["receipt"]
 
@@ -111,6 +116,9 @@ def parse_transaction_with_receipt(
         tx_receipt.get("execution_status"), tx_receipt.get("finality_status")
     )
     parsed_transaction.execution_resources = tx_receipt.get("execution_resources", {})
+
+    msg_hash = tx_receipt.get("message_hash")
+    parsed_transaction.message_hash = to_bytes(msg_hash, pad=32) if msg_hash else None
 
     if parsed_transaction.contract_address is None:
         receipt_addr = tx_receipt.get("contract_address")
@@ -129,7 +137,20 @@ def parse_transaction_with_receipt(
         for event_index, event_dict in enumerate(tx_receipt.get("events", []))
     ]
 
-    return parsed_transaction, events
+    messages = [
+        OutgoingMessage(
+            starknet_block_number=parsed_transaction.block_number,
+            starknet_transaction_index=parsed_transaction.transaction_index,
+            starknet_transaction_hash=parsed_transaction.transaction_hash,
+            message_index=message_index,
+            from_starknet_address=to_bytes(message_data["from_address"], pad=32),
+            to_ethereum_address=to_bytes(message_data["to_address"], pad=20),
+            payload=[to_bytes(p) for p in message_data.get("payload", [])],
+        )
+        for message_index, message_data in enumerate(tx_receipt.get("messages_sent", []))
+    ]
+
+    return parsed_transaction, events, messages
 
 
 @dataclass
@@ -198,3 +219,27 @@ def parse_transaction_responses(
         )
 
     return decoded_txns
+
+
+def parse_incoming_messages(l1_handler_transactions: list[TransactionResponse]) -> list[IncomingMessage]:
+    incoming_messages = []
+
+    for tx in l1_handler_transactions:
+        if tx.type != StarknetTxType.l1_handler:
+            continue
+
+        assert tx.message_hash is not None, "L1 Handler txns must have message_hash in receipt"
+
+        incoming_messages.append(
+            IncomingMessage(
+                starknet_block_number=tx.block_number,
+                starknet_transaction_index=tx.transaction_index,
+                starknet_transaction_hash=tx.transaction_hash,
+                message_hash=tx.message_hash,
+                to_starknet_address=tx.contract_address,
+                calldata=tx.calldata,
+                selector=tx.entry_point_selector,
+            )
+        )
+
+    return incoming_messages

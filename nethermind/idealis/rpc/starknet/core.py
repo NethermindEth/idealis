@@ -18,6 +18,7 @@ from nethermind.idealis.types.starknet.core import (
     Event,
     TransactionResponse,
 )
+from nethermind.idealis.types.starknet.rollup import OutgoingMessage
 from nethermind.idealis.utils import to_bytes, to_hex
 
 root_logger = logging.getLogger("nethermind")
@@ -39,6 +40,8 @@ def _starknet_block_id(block_id: int | str | bytes) -> str | dict[str, str | int
         return {"block_hash": to_hex(block_id)}
     elif isinstance(block_id, int):
         return {"block_number": block_id}
+    else:
+        raise ValueError(f"Cannot parse {block_id} into starknet block_id")
 
 
 async def get_current_block(aiohttp_session: ClientSession, json_rpc: str) -> int:
@@ -74,7 +77,7 @@ def sync_get_current_block(rpc_url) -> int:
     response_json = block_response.json()
     try:
         return int(response_json["result"])
-    except KeyError:
+    except KeyError:  # pylint: disable=raise-missing-from
         raise RPCError(f"Error fetching current block number for Starknet: {response_json}")
 
 
@@ -102,12 +105,12 @@ async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSes
 
 async def get_blocks_with_txns(
     blocks: list[int], rpc_url: str, aiohttp_session: ClientSession
-) -> tuple[list[BlockResponse], list[TransactionResponse], list[Event]]:
+) -> tuple[list[BlockResponse], list[TransactionResponse], list[Event], list[OutgoingMessage]]:
     logger.debug(f"Async Requesting {len(blocks)} Blocks with Transactions")
 
     async def _get_block(
         block_number: int,
-    ) -> tuple[BlockResponse, list[TransactionResponse], list[Event]]:
+    ) -> tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]:
         async with aiohttp_session.post(
             rpc_url,
             json=(
@@ -127,17 +130,18 @@ async def get_blocks_with_txns(
                 logger.error(f"Error parsing block {block_number}: {e}")
                 raise e
 
-    response_data: tuple[tuple[BlockResponse, list[TransactionResponse], list[Event]]] = await asyncio.gather(
-        *[_get_block(block) for block in blocks]
-    )
+    response_data: tuple[
+        tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]
+    ] = await asyncio.gather(*[_get_block(block) for block in blocks])
 
-    out_blocks, out_txns, out_events = [], [], []
-    for block, txns, events in response_data:
+    out_blocks, out_txns, out_events, out_messages = [], [], [], []
+    for block, txns, events, messages in response_data:
         out_blocks.append(block)
         out_txns += txns
         out_events += events
+        out_messages += messages
 
-    return out_blocks, out_txns, out_events
+    return out_blocks, out_txns, out_events, out_messages
 
 
 def sync_get_class_abi(
@@ -169,7 +173,7 @@ def sync_get_class_abi(
 
     try:
         rpc_abi_response = class_json["result"]["abi"]
-    except KeyError:
+    except KeyError:  # pylint: disable=raise-missing-from
         raise RPCError(f"Error fetching Starknet class ABI for {to_hex(class_hash)}: {class_json}")
 
     if isinstance(rpc_abi_response, str):

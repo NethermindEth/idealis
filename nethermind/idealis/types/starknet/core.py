@@ -75,6 +75,7 @@ class TransactionResponse:
     actual_fee: int
     fee_unit: StarknetFeeUnit
     execution_resources: dict[str, Any]
+    message_hash: bytes | None  # l1_handler txns
 
     def validate_invoke(self):
         match self.version:

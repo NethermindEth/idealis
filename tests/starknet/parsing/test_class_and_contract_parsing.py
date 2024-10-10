@@ -30,7 +30,7 @@ def test_parse_deploy_class_declaration(starknet_rpc_url):
         },
     }
 
-    transaction_response, _ = parse_transaction_with_receipt(
+    transaction_response, _, _ = parse_transaction_with_receipt(
         tx_and_receipt_json, block_number=146, transaction_index=9, block_timestamp=1638108551
     )
 
@@ -97,7 +97,7 @@ def test_parse_erc20_declare(starknet_rpc_url):
         },
     }
 
-    transaction_response, _ = parse_transaction_with_receipt(
+    transaction_response, _, _ = parse_transaction_with_receipt(
         tx_and_receipt_json, block_number=629084, transaction_index=25, block_timestamp=1711956804
     )
 
@@ -163,7 +163,7 @@ def test_parse_account_class(starknet_rpc_url):
         },
     }
 
-    transaction_response, _ = parse_transaction_with_receipt(
+    transaction_response, _, _ = parse_transaction_with_receipt(
         tx_and_receipt_json, block_number=532944, transaction_index=54, block_timestamp=1707131436
     )
 
@@ -208,7 +208,7 @@ def test_deploy_contract_parsing(starknet_rpc_url):
         },
     }
 
-    transaction_response, _ = parse_transaction_with_receipt(
+    transaction_response, _, _ = parse_transaction_with_receipt(
         tx_and_receipt_json, block_number=3, transaction_index=30, block_timestamp=1637091683
     )
 
