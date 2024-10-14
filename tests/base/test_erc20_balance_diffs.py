@@ -51,8 +51,19 @@ def test_generate_single_token_balance_diffs():
     account_3 = [d for d in transfer_diffs if d.holder_address == STARKNET_ACCOUNT_3][0]
 
     assert account_1.balance_diff == -50
+    assert account_1.transfers_sent == 1
+    assert account_1.transfers_received == 1
+    assert account_1.total_supply_diff == 50
+
     assert account_2.balance_diff == -100
+    assert account_2.transfers_sent == 1
+    assert account_2.transfers_received == 1
+    assert account_2.total_supply_diff == 0
+
     assert account_3.balance_diff == 200
+    assert account_3.transfers_sent == 0
+    assert account_3.transfers_received == 1
+    assert account_3.total_supply_diff == 0
 
 
 def test_multi_token_transfer_state():
@@ -89,6 +100,14 @@ def test_multi_token_transfer_state():
     transfer_diffs = generate_balance_diffs(transfers, 100)
     assert len(transfer_diffs) == 3
 
+    account_1_eth = [d for d in transfer_diffs if d.holder_address == STARKNET_ACCOUNT_1]
+    assert len(account_1_eth) == 1
+    assert account_1_eth[0].transfers_received == 1
+    assert account_1_eth[0].transfers_sent == 1
+    assert account_1_eth[0].balance_diff == 0
+    assert account_1_eth[0].total_supply_diff == 400
+    assert account_1_eth[0].token_address == STARKNET_ETH
+
     account_2 = [d for d in transfer_diffs if d.holder_address == STARKNET_ACCOUNT_2]
     assert len(account_2) == 2
 
@@ -96,4 +115,11 @@ def test_multi_token_transfer_state():
     account_2_usdc = [d for d in account_2 if d.token_address == STARKNET_USDC][0]
 
     assert account_2_eth.balance_diff == 400
+    assert account_2_eth.transfers_sent == 0
+    assert account_2_eth.transfers_received == 1
+    assert account_2_eth.total_supply_diff == 0
+
+    assert account_2_usdc.transfers_sent == 0
+    assert account_2_usdc.transfers_received == 1
+    assert account_2_usdc.total_supply_diff == 100
     assert account_2_usdc.balance_diff == 100
