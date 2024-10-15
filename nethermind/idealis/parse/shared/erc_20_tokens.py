@@ -139,89 +139,67 @@ def apply_transfers_to_balance_state(
     return balance_state
 
 
-def generate_balance_diffs(transfers: list[ERC20Transfer], reference_block: int) -> list[ERC20BalanceDiff]:
+def generate_balance_diffs(
+    transfers: list[ERC20Transfer], reference_block: int, zero_address: bytes = to_bytes("0x00", 20)
+) -> list[ERC20BalanceDiff]:
+    """
+    Group transfers into batches of balance diffs.  Create a debit and credit account for each transfer,
+    and track the amount of token flows.  There is a ZERO_ADDRESS environment variable which is a set of address
+    bytes that are recognized as null addresses, or burn addresses
+
+    :param transfers: List of ERC20 Transfer events
+    :param reference_block:  What block to populate as the block_number for the ERC20BalanceDiff.
+    :param zero_address:  What address to use as default Null address.  All detected ERC20 mint & burn events will
+        be registered under this address as the holder
+    :return:
+    """
     state_map: dict[bytes, dict[bytes, ERC20BalanceDiff]] = {}
 
     for transfer in transfers:
-        is_mint = transfer.from_address in NULL_ADDRESS
-        is_burn = transfer.to_address in NULL_ADDRESS
+        debit_holder_addr = zero_address if transfer.from_address in NULL_ADDRESS else transfer.from_address
+        credit_holder_addr = zero_address if transfer.to_address in NULL_ADDRESS else transfer.to_address
 
-        debit_account_balance_diff = 0
-        debit_account_transfers_sent = 0
-        debit_account_transfers_received = 0
-        debit_account_total_supply_diff = 0
+        try:
+            debit_account = state_map[transfer.token_address][debit_holder_addr]
 
-        credit_account_balance_diff = 0
-        credit_account_transfers_sent = 0
-        credit_account_transfers_received = 0
-        credit_account_total_supply_diff = 0
+            debit_account.balance_diff -= transfer.value
+            debit_account.transfers_sent += 1
 
-        # Apply Debits to from_address account
-        if is_mint:
-            credit_account_total_supply_diff = transfer.value
+        except KeyError:
+            debit_balance_diff = ERC20BalanceDiff(
+                token_address=transfer.token_address,
+                holder_address=debit_holder_addr,
+                block_number=reference_block,
+                balance_diff=-transfer.value,
+                transfers_received=0,
+                transfers_sent=1,
+            )
 
-        else:
-            debit_account_balance_diff = -transfer.value
-            debit_account_transfers_sent = 1
+            if transfer.token_address in state_map:
+                state_map[transfer.token_address][debit_holder_addr] = debit_balance_diff
+            else:
+                state_map[transfer.token_address] = {debit_holder_addr: debit_balance_diff}
 
-        # Apply Credits for to_address account
-        if is_burn:
-            debit_account_total_supply_diff = -transfer.value
-        else:
-            credit_account_balance_diff = transfer.value
-            credit_account_transfers_received = 1
+        try:
+            credit_account = state_map[transfer.token_address][credit_holder_addr]
 
-        # If it is a Mint, dont set [token_addr][0x000]
-        if not is_mint:
-            try:
-                debit_account = state_map[transfer.token_address][transfer.from_address]
+            credit_account.balance_diff += transfer.value
+            credit_account.transfers_received += 1
 
-                debit_account.total_supply_diff += debit_account_total_supply_diff
-                debit_account.balance_diff += debit_account_balance_diff
-                debit_account.transfers_received += debit_account_transfers_received
-                debit_account.transfers_sent += debit_account_transfers_sent
+        except KeyError:
+            credit_balance_diff = ERC20BalanceDiff(
+                token_address=transfer.token_address,
+                holder_address=transfer.to_address,
+                block_number=reference_block,
+                balance_diff=transfer.value,
+                transfers_received=1,
+                transfers_sent=0,
+            )
 
-            except KeyError:
-                debit_balance_diff = ERC20BalanceDiff(
-                    token_address=transfer.token_address,
-                    holder_address=transfer.from_address,
-                    block_number=reference_block,
-                    total_supply_diff=debit_account_total_supply_diff,
-                    balance_diff=debit_account_balance_diff,
-                    transfers_received=debit_account_transfers_received,
-                    transfers_sent=debit_account_transfers_sent,
-                )
-
-                if transfer.token_address in state_map:
-                    state_map[transfer.token_address].update({transfer.from_address: debit_balance_diff})
-                else:
-                    state_map.update({transfer.token_address: {transfer.from_address: debit_balance_diff}})
-
-        # If it is a Burn, do not update [token_address][0x00]
-        if not is_burn:
-            try:
-                credit_account = state_map[transfer.token_address][transfer.to_address]
-
-                credit_account.total_supply_diff += credit_account_total_supply_diff
-                credit_account.balance_diff += credit_account_balance_diff
-                credit_account.transfers_received += credit_account_transfers_received
-                credit_account.transfers_sent += credit_account_transfers_sent
-
-            except KeyError:
-                credit_balance_diff = ERC20BalanceDiff(
-                    token_address=transfer.token_address,
-                    holder_address=transfer.to_address,
-                    block_number=reference_block,
-                    total_supply_diff=credit_account_total_supply_diff,
-                    balance_diff=credit_account_balance_diff,
-                    transfers_received=credit_account_transfers_received,
-                    transfers_sent=credit_account_transfers_sent
-                )
-
-                if transfer.token_address in state_map:
-                    state_map[transfer.token_address].update({transfer.to_address: credit_balance_diff})
-                else:
-                    state_map.update({transfer.token_address: {transfer.to_address: credit_balance_diff}})
+            if transfer.token_address in state_map:
+                state_map[transfer.token_address][credit_holder_addr] = credit_balance_diff
+            else:
+                state_map[transfer.token_address] = {credit_holder_addr: credit_balance_diff}
 
     balance_diffs = []
 

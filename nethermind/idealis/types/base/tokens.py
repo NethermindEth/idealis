@@ -51,7 +51,6 @@ class ERC20BalanceDiff(DataclassDBInterface):
     holder_address: bytes
     block_number: int
 
-    total_supply_diff: int  # Amount diff in total_supply
     balance_diff: int
     transfers_received: int
     transfers_sent: int
