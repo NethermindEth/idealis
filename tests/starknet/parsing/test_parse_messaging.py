@@ -62,11 +62,11 @@ def test_parse_incoming_message():
         },
     }
 
-    transaction_response, _, _ = parse_transaction_with_receipt(
+    parsed_tx, _, _ = parse_transaction_with_receipt(
         tx_and_receipt_json, block_number=790105, block_timestamp=1728576433, transaction_index=15
     )
 
-    incoming_messages = parse_incoming_messages([transaction_response])
+    incoming_messages = parse_incoming_messages([parsed_tx])
 
     assert len(incoming_messages) == 1
 

@@ -1,11 +1,11 @@
 from typing import Any
 
 from nethermind.idealis.types.starknet.contracts import StarknetClass
-from nethermind.idealis.types.starknet.core import TransactionResponse
+from nethermind.idealis.types.starknet.core import Transaction
 
 
 def parse_starknet_class(
-    declare_tx: TransactionResponse,
+    declare_tx: Transaction,
     class_json: dict[str, Any],
     class_name: str | None = None,
 ) -> StarknetClass:

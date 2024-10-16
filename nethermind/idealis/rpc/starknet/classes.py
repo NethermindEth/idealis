@@ -11,7 +11,7 @@ from nethermind.idealis.types.starknet.contracts import (
     ClassDeclaration,
     ContractDeployment,
 )
-from nethermind.idealis.types.starknet.core import TransactionResponse
+from nethermind.idealis.types.starknet.core import Transaction
 from nethermind.idealis.types.starknet.enums import StarknetTxType
 from nethermind.starknet_abi.dispatch import DecodingDispatcher, StarknetAbi
 from nethermind.starknet_abi.utils import starknet_keccak
@@ -23,13 +23,13 @@ logger = root_logger.getChild("rpc").getChild("starknet")
 
 
 def get_class_declarations(
-    declare_transactions: list[TransactionResponse],
-    deploy_transactions: list[TransactionResponse],
+    declare_transactions: list[Transaction],
+    deploy_transactions: list[Transaction],
     json_rpc: str,
     known_classes: set[bytes] | None = None,
 ) -> list[ClassDeclaration]:
     """
-    Parse TransactionResponses into ClassDeclaration details.
+    Parse Transactions into ClassDeclaration details.
 
     Deploy transactions are passed since deploy transactions were able to declare classes.  This was removed in
     later versions, and deploy_account transactions cannot do this, and all classes are defined using declare
@@ -58,7 +58,7 @@ def get_class_declarations(
 
     for tx in ordered_txns:
         if tx.class_hash is None:
-            logger.error(f"Cannot Parse TransactionResponse into ClassDeclaration: {tx}")
+            logger.error(f"Cannot Parse Transaction into ClassDeclaration: {tx}")
             continue
 
         # If deploy transaction, and we know class hash already exists, can skip
@@ -98,12 +98,12 @@ def get_class_declarations(
 
 
 def get_contract_deployments(
-    deploy_account_transactions: list[TransactionResponse],
-    deploy_transactions: list[TransactionResponse],
+    deploy_account_transactions: list[Transaction],
+    deploy_transactions: list[Transaction],
     decoding_dispatcher: DecodingDispatcher,
 ) -> list[ContractDeployment]:
     """
-    Parse TransactionResponse into ContractDeployment dataclasses.  Handles all versions of starknet transactions.
+    Parse Transactions into ContractDeployment dataclasses.  Handles all versions of starknet transactions.
 
     In early starknet, deploy tx was used, and is handled.  deploy_account transactions are also handled and
     parsed into shared schema
@@ -117,7 +117,7 @@ def get_contract_deployments(
             continue
 
         decoded = decoding_dispatcher.decode_function(
-            calldata=[int.from_bytes(b) for b in transaction.constructor_calldata],
+            calldata=[int.from_bytes(b) for b in transaction.calldata],
             result=[],
             function_selector=CONSTRUCTOR_SIGNATURE,
             class_hash=transaction.class_hash,

@@ -13,7 +13,18 @@ from nethermind.idealis.types.starknet.enums import (
 
 
 @dataclass(slots=True)
-class BlockResponse(DataclassDBInterface):
+class DecodedOperation:
+    """
+    Dataclass representing a decoded user operation.  If operation is unknown, the name will be set to
+    'Unknown' and params set to the raw calldata inputs.
+    """
+
+    operation_name: str
+    operation_params: dict[str, Any]
+
+
+@dataclass(slots=True)
+class Block(DataclassDBInterface):
     """
     Dataclass representing a block.
     """
@@ -37,55 +48,45 @@ class BlockResponse(DataclassDBInterface):
 
 
 @dataclass(slots=True)
-class TransactionResponse:
-    # Mandatory Tx Fields for All Types
-
+class Transaction(DataclassDBInterface):
     transaction_hash: bytes
     block_number: int
     transaction_index: int
 
     type: StarknetTxType
-    timestamp: int
     nonce: int
     signature: list[bytes]
     version: int
-    max_fee: int
-
-    # V3 Transaction Fields
-
-    account_deployment_data: list[bytes]  # Used in V3 transactions
-    tip: int  # Not In Use
-    resource_bounds: dict[str, int] | None  # Not in Use -- Will Eventually Enable Fee Market
-    paymaster_data: list[bytes]
-    fee_data_availability_mode: int  # Not in Use -- Convert to Enum Eventually
-    nonce_data_availability_mode: int  # Not in Use -- Convert to Enum Eventually
-
-    # Optional Fields for Different Tx Types
-    entry_point_selector: bytes | None
-    calldata: list[bytes]  # Invoke Txns
-    constructor_calldata: list[bytes]  # Deploy Account Txns
-    class_hash: bytes | None  # Deploy Account & Declare V2
-    contract_address: bytes | None  # Address declared, or address called for invoke txns
-    compiled_class_hash: bytes | None  # Declare Txns
-    contract_address_salt: bytes | None  # Deploy Account Txns
-    contract_class: bytes | None  # Declare Txns
-
-    # Receipt Data
+    timestamp: int
     status: TransactionStatus
+
+    max_fee: int
     actual_fee: int
     fee_unit: StarknetFeeUnit
     execution_resources: dict[str, Any]
-    message_hash: bytes | None  # l1_handler txns
+    gas_used: int | None
 
-    def validate_invoke(self):
-        match self.version:
-            case 0 | 1 | 3:
-                assert len(self.calldata) > 4  # [call_len, contract, entry, param_len]
+    # V3 Transaction Fields
 
-    def validate_declare(self):
-        match self.version:
-            case 0 | 1 | 2 | 3:
-                assert len(self.calldata) == 0
+    tip: int  # Not In Use
+    resource_bounds: dict[str, int] | None  # Not in Use -- Will Eventually Enable Fee Market
+    paymaster_data: list[bytes]
+    account_deployment_data: list[bytes]  # Used in V3 transactions
+
+    # data_availablity_mode: tuple[
+    #     BlockDataAvailabilityMode | None,  # Fee Data Availability Mode
+    #     BlockDataAvailabilityMode | None,  # Nonce Data Availability Mode
+    # ]
+
+    # Optional Fields for Different Tx Types
+    contract_address: bytes | None
+    selector: bytes  # Selector used for decoding calldata
+    calldata: list[bytes]  # Calldata for Invoke Txns, Constructor Calldata for Depoly Account
+    class_hash: bytes | None  # Deploy Account & Declare V2
+    message_hash: bytes | None  # L1 Handler txns
+
+    user_operations: list[DecodedOperation]
+    revert_error: str | None
 
 
 @dataclass(slots=True)
@@ -172,57 +173,3 @@ class StateDiff:
     deprecated_declared_classes: list[Any]
     declared_classes: list[Any]
     replaced_classes: list[Any]
-
-
-@dataclass(slots=True)
-class DecodedOperation:
-    """
-
-    Dataclass representing a decoded user operation.  If operation is unknown, the name will be set to
-    'Unknown' and params set to the raw calldata inputs.
-
-    """
-
-    operation_name: str
-    operation_params: dict[str, Any]
-
-
-@dataclass(slots=True)
-class Transaction(DataclassDBInterface):
-    transaction_hash: bytes
-    block_number: int
-    transaction_index: int
-
-    type: StarknetTxType
-    nonce: int
-    signature: list[bytes]
-    version: int
-    timestamp: int
-    status: TransactionStatus
-
-    max_fee: int
-    actual_fee: int
-    fee_unit: StarknetFeeUnit
-    execution_resources: dict[str, Any]
-    gas_used: int
-
-    # V3 Transaction Fields
-
-    tip: int  # Not In Use
-    resource_bounds: dict[str, int] | None  # Not in Use -- Will Eventually Enable Fee Market
-    paymaster_data: list[bytes]
-    account_deployment_data: list[bytes]  # Used in V3 transactions
-
-    # data_availablity_mode: tuple[
-    #     BlockDataAvailabilityMode | None,  # Fee Data Availability Mode
-    #     BlockDataAvailabilityMode | None,  # Nonce Data Availability Mode
-    # ]
-
-    # Optional Fields for Different Tx Types
-    contract_address: bytes | None
-    selector: bytes  # Selector used for decoding calldata
-    calldata: list[bytes]  # Calldata for Invoke Txns, Constructor Calldata for Depoly Account
-    class_hash: bytes | None  # Deploy Account & Declare V2
-
-    user_operations: list[DecodedOperation]
-    revert_error: str | None

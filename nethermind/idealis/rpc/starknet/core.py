@@ -13,11 +13,7 @@ from nethermind.idealis.parse.starknet.block import (
 )
 from nethermind.idealis.parse.starknet.event import parse_event_response
 from nethermind.idealis.rpc.base.async_rpc import parse_async_rpc_response
-from nethermind.idealis.types.starknet.core import (
-    BlockResponse,
-    Event,
-    TransactionResponse,
-)
+from nethermind.idealis.types.starknet.core import Block, Event, Transaction
 from nethermind.idealis.types.starknet.rollup import OutgoingMessage
 from nethermind.idealis.utils import to_bytes, to_hex
 
@@ -81,10 +77,10 @@ def sync_get_current_block(rpc_url) -> int:
         raise RPCError(f"Error fetching current block number for Starknet: {response_json}")
 
 
-async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSession) -> Sequence[BlockResponse]:
+async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSession) -> Sequence[Block]:
     logger.debug(f"Async Requesting {len(blocks)} Blocks")
 
-    async def _get_block(block_number: int) -> BlockResponse:
+    async def _get_block(block_number: int) -> Block:
         async with aiohttp_session.post(
             rpc_url,
             json=(
@@ -105,12 +101,12 @@ async def get_blocks(blocks: list[int], rpc_url: str, aiohttp_session: ClientSes
 
 async def get_blocks_with_txns(
     blocks: list[int], rpc_url: str, aiohttp_session: ClientSession
-) -> tuple[list[BlockResponse], list[TransactionResponse], list[Event], list[OutgoingMessage]]:
+) -> tuple[list[Block], list[Transaction], list[Event], list[OutgoingMessage]]:
     logger.debug(f"Async Requesting {len(blocks)} Blocks with Transactions")
 
     async def _get_block(
         block_number: int,
-    ) -> tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]:
+    ) -> tuple[Block, list[Transaction], list[Event], list[OutgoingMessage]]:
         async with aiohttp_session.post(
             rpc_url,
             json=(
@@ -130,9 +126,9 @@ async def get_blocks_with_txns(
                 logger.error(f"Error parsing block {block_number}: {e}")
                 raise e
 
-    response_data: tuple[
-        tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]
-    ] = await asyncio.gather(*[_get_block(block) for block in blocks])
+    response_data: tuple[tuple[Block, list[Transaction], list[Event], list[OutgoingMessage]]] = await asyncio.gather(
+        *[_get_block(block) for block in blocks]
+    )
 
     out_blocks, out_txns, out_events, out_messages = [], [], [], []
     for block, txns, events, messages in response_data:

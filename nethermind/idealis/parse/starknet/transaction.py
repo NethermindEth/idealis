@@ -1,11 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from nethermind.idealis.types.starknet.core import (
-    Event,
-    Transaction,
-    TransactionResponse,
-)
+from nethermind.idealis.types.starknet.core import Event, Transaction
 from nethermind.idealis.types.starknet.enums import (
     StarknetFeeUnit,
     StarknetTxType,
@@ -21,16 +17,22 @@ def parse_transaction(
     block_number: int,
     transaction_index: int,
     block_timestamp: int,
-) -> TransactionResponse:
+) -> Transaction:
     tx_type = StarknetTxType(tx_data["type"])
     tx_version = hex_to_int(tx_data["version"])
 
     class_hash = to_bytes(tx_data["class_hash"], pad=32) if "class_hash" in tx_data else None
+
+    # compiled_class_hash=compiled_class_hash,
+    # contract_address_salt=contract_address_salt,
+    # contract_class=contract_class,
+
     compiled_class_hash = to_bytes(tx_data["compiled_class_hash"], pad=32) if "compiled_class_hash" in tx_data else None
     contract_address_salt = (
         to_bytes(tx_data["contract_address_salt"], pad=32) if "contract_address_salt" in tx_data else None
     )
     contract_class = to_bytes(tx_data["contract_class"], pad=32) if "contract_class" in tx_data else None
+
     if "contract_address" in tx_data:
         contract_address = to_bytes(tx_data["contract_address"], pad=32)
     elif "sender_address" in tx_data:
@@ -44,7 +46,14 @@ def parse_transaction(
         else starknet_keccak(b"__execute__")
     )
 
-    return TransactionResponse(
+    if "calldata" in tx_data:
+        calldata = [to_bytes(data) for data in tx_data.get("calldata", [])]
+    elif "constructor_calldata" in tx_data:
+        calldata = [to_bytes(data) for data in tx_data.get("constructor_calldata", [])]
+    else:
+        calldata = []
+
+    return Transaction(
         transaction_hash=to_bytes(tx_data["transaction_hash"], pad=32),
         block_number=block_number,
         transaction_index=transaction_index,
@@ -55,20 +64,14 @@ def parse_transaction(
         signature=[to_bytes(sig, pad=32) for sig in tx_data.get("signature", [])],
         # Optional Tx Fields
         contract_address=contract_address,
-        entry_point_selector=selector,
-        calldata=[to_bytes(data) for data in tx_data.get("calldata", [])],
-        constructor_calldata=[to_bytes(data) for data in tx_data.get("constructor_calldata", [])],
+        selector=selector,
+        calldata=calldata,
         class_hash=class_hash,
-        compiled_class_hash=compiled_class_hash,
-        contract_address_salt=contract_address_salt,
-        contract_class=contract_class,
         # V3 Transaction Fields
         account_deployment_data=[to_bytes(account_data) for account_data in tx_data.get("account_deployment_data", [])],
         tip=tx_data.get("tip", 0),
         resource_bounds=tx_data.get("resource_bounds", {}),
         paymaster_data=[to_bytes(paymaster_data) for paymaster_data in tx_data.get("paymaster_data", [])],
-        fee_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
-        nonce_data_availability_mode=0,  # Not in Use -- Convert to Enum Eventually
         # Receipt Transaction Fields
         max_fee=hex_to_int(tx_data.get("max_fee", "0x0")),
         fee_unit=StarknetFeeUnit.wei,
@@ -76,6 +79,9 @@ def parse_transaction(
         status=TransactionStatus.not_received,
         execution_resources={},
         message_hash=None,
+        gas_used=None,
+        user_operations=[],
+        revert_error=None,
     )
 
 
@@ -102,7 +108,7 @@ def parse_transaction_with_receipt(
     block_number: int,
     transaction_index: int,
     block_timestamp: int,
-) -> tuple[TransactionResponse, list[Event], list[OutgoingMessage],]:
+) -> tuple[Transaction, list[Event], list[OutgoingMessage],]:
     tx_data = tx_response["transaction"]
     tx_receipt = tx_response["receipt"]
 
@@ -155,16 +161,16 @@ def parse_transaction_with_receipt(
 
 @dataclass
 class FilteredTransactions:
-    invoke_transactions: list[TransactionResponse]
-    declare_transactions: list[TransactionResponse]
-    deploy_transactions: list[TransactionResponse]
-    deploy_account_transactions: list[TransactionResponse]
-    l1_handler_transactions: list[TransactionResponse]
+    invoke_transactions: list[Transaction]
+    declare_transactions: list[Transaction]
+    deploy_transactions: list[Transaction]
+    deploy_account_transactions: list[Transaction]
+    l1_handler_transactions: list[Transaction]
 
 
 # TODO: Fix this dumpster fire
 def filter_transactions_by_type(
-    transactions: list[TransactionResponse],
+    transactions: list[Transaction],
 ) -> FilteredTransactions:
     return FilteredTransactions(
         invoke_transactions=[tx for tx in transactions if tx.type == StarknetTxType.invoke],
@@ -175,53 +181,7 @@ def filter_transactions_by_type(
     )
 
 
-def parse_transaction_responses(
-    transactions: list[TransactionResponse],
-) -> list[Transaction]:
-    """
-    Parses transaction_response into a Transaction, adding user operations and resource consumption from traces,
-    and returns a list of DecodedTransactions.
-
-    :param transactions:
-    :return:
-    """
-
-    decoded_txns = []
-
-    for tx in transactions:
-        decoded_txns.append(
-            Transaction(
-                transaction_hash=tx.transaction_hash,
-                block_number=tx.block_number,
-                transaction_index=tx.transaction_index,
-                type=tx.type,
-                nonce=tx.nonce,
-                signature=tx.signature,
-                version=tx.version,
-                timestamp=tx.timestamp,
-                status=tx.status,
-                max_fee=tx.max_fee,
-                actual_fee=tx.actual_fee,
-                fee_unit=tx.fee_unit,
-                execution_resources=tx.execution_resources,
-                gas_used=0,
-                tip=0,
-                resource_bounds={},
-                paymaster_data=[],
-                account_deployment_data=[],
-                contract_address=tx.contract_address,
-                selector=tx.entry_point_selector,
-                calldata=(tx.calldata if tx.type == StarknetTxType.invoke else tx.constructor_calldata),
-                class_hash=tx.class_hash,
-                user_operations=[],
-                revert_error=None,
-            )
-        )
-
-    return decoded_txns
-
-
-def parse_incoming_messages(l1_handler_transactions: list[TransactionResponse]) -> list[IncomingMessage]:
+def parse_incoming_messages(l1_handler_transactions: list[Transaction]) -> list[IncomingMessage]:
     incoming_messages = []
 
     for tx in l1_handler_transactions:
@@ -238,7 +198,7 @@ def parse_incoming_messages(l1_handler_transactions: list[TransactionResponse]) 
                 message_hash=tx.message_hash,
                 to_starknet_address=tx.contract_address,
                 calldata=tx.calldata,
-                selector=tx.entry_point_selector,
+                selector=tx.selector,
             )
         )
 

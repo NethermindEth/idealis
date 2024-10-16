@@ -1,18 +1,14 @@
 from typing import Any
 
 from nethermind.idealis.parse.starknet.transaction import parse_transaction_with_receipt
-from nethermind.idealis.types.starknet.core import (
-    BlockResponse,
-    Event,
-    TransactionResponse,
-)
+from nethermind.idealis.types.starknet.core import Block, Event, Transaction
 from nethermind.idealis.types.starknet.enums import BlockDataAvailabilityMode
 from nethermind.idealis.types.starknet.rollup import OutgoingMessage
 from nethermind.idealis.utils import hex_to_int, to_bytes
 
 
-def parse_block(response_json: dict[str, Any]) -> BlockResponse:
-    return BlockResponse(
+def parse_block(response_json: dict[str, Any]) -> Block:
+    return Block(
         block_number=response_json["block_number"],
         block_hash=to_bytes(response_json["block_hash"], pad=32),
         parent_hash=to_bytes(response_json["parent_hash"], pad=32),
@@ -32,7 +28,7 @@ def parse_block(response_json: dict[str, Any]) -> BlockResponse:
 
 def parse_block_with_tx_receipts(
     response_json: dict[str, Any]
-) -> tuple[BlockResponse, list[TransactionResponse], list[Event], list[OutgoingMessage]]:
+) -> tuple[Block, list[Transaction], list[Event], list[OutgoingMessage]]:
     block_response = parse_block(response_json)
 
     transactions, all_events, all_messages = [], [], []
