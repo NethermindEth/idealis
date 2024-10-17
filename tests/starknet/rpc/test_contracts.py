@@ -1,5 +1,8 @@
 import pytest
 
+from nethermind.idealis.parse.starknet.transaction import filter_transactions_by_type
+from nethermind.idealis.rpc.starknet import get_blocks_with_txns
+from nethermind.idealis.rpc.starknet.classes import get_class_declarations
 from nethermind.idealis.rpc.starknet.contract import (
     generate_contract_implementation,
     get_contract_upgrade,
@@ -271,3 +274,33 @@ async def test_update_contract_impl(starknet_rpc_url, async_http_session, starkn
     )
 
     assert full_generation_impl == incremental_impl
+
+
+# In this block, there is a deploy transaction at tx_idx 7 which creates a new class.
+# At tx_idx 18, there is a declare transaction which then also declares this class.
+# Both transactions are successful & accepted on L1.
+# https://voyager.online/tx/0x01e282582472db2c8972e78b3e86cfea77038898f0f5f71fba5ebda3273eda72
+# https://voyager.online/tx/0x05924ebd1b6dcec81636028d1e2ad2447dbffd50a46766ecd5832dc27d368638
+@pytest.mark.asyncio
+async def test_duplicate_class_declaration_parsing(async_http_session, starknet_rpc_url):
+    _, transactions, _, _ = await get_blocks_with_txns([3806], starknet_rpc_url, async_http_session)
+
+    filtered_txns = filter_transactions_by_type(transactions)
+
+    class_declarations = get_class_declarations(
+        filtered_txns.declare_transactions, filtered_txns.deploy_transactions, starknet_rpc_url
+    )
+
+    assert len(class_declarations) == 3
+    assert (
+        class_declarations[0].declare_transaction_hash.hex()
+        == "05924ebd1b6dcec81636028d1e2ad2447dbffd50a46766ecd5832dc27d368638"
+    )
+    assert (
+        class_declarations[1].declare_transaction_hash.hex()
+        == "0068627beb69ae89caf55973e38b2870a1b23c9401d6c03712a34cfe11ffea7f"
+    )
+    assert (
+        class_declarations[2].declare_transaction_hash.hex()
+        == "038af55ce5bb6a3a5bf8381741199344c3c2da132b2a99bb2e3b49d5032a1753"
+    )

@@ -62,7 +62,8 @@ def get_class_declarations(
             continue
 
         # If deploy transaction, and we know class hash already exists, can skip
-        if tx.type == StarknetTxType.deploy and tx.class_hash in known_classes:
+        # If declare transaction and class already exists, skip
+        if tx.class_hash in known_classes:
             continue
 
         if tx.type == StarknetTxType.deploy:
