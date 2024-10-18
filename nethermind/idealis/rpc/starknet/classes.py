@@ -14,7 +14,7 @@ from nethermind.idealis.types.starknet.contracts import (
 from nethermind.idealis.types.starknet.core import Transaction
 from nethermind.idealis.types.starknet.enums import StarknetTxType
 from nethermind.starknet_abi.dispatch import DecodingDispatcher, StarknetAbi
-from nethermind.starknet_abi.exceptions import InvalidCalldataError
+from nethermind.starknet_abi.exceptions import InvalidCalldataError, TypeDecodeError
 from nethermind.starknet_abi.utils import starknet_keccak
 
 CONSTRUCTOR_SIGNATURE = starknet_keccak(b"constructor")
@@ -125,7 +125,7 @@ def get_contract_deployments(
                 function_selector=CONSTRUCTOR_SIGNATURE,
                 class_hash=transaction.class_hash,
             )
-        except InvalidCalldataError as e:
+        except (InvalidCalldataError, KeyError, TypeDecodeError) as e:
             logger.error(
                 f"Decode Error while Parsing Contract Deployment for Transaction "
                 f"0x{transaction.transaction_hash.hex()}: {e}"
