@@ -1,6 +1,4 @@
-import json
 import logging
-from typing import Any
 
 from nethermind.idealis.rpc.starknet import sync_get_class_abi
 from nethermind.starknet_abi.dispatch import (
@@ -19,8 +17,9 @@ def get_parsed_class(class_hash, rpc_url) -> StarknetAbi | None:
         return None
     try:
         return StarknetAbi.from_json(abi_json=class_abi, class_hash=class_hash)
-    except BaseException as e:
+    except BaseException as e:  # pylint: disable-broad-exception-caught
         logger.error(f"Error parsing ABI for class 0x{class_hash.hex()}...  {e}")
+        return None
 
 
 class PessimisticDecoder(DecodingDispatcher):

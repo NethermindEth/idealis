@@ -4,12 +4,17 @@ from bisect import bisect_right
 import requests
 from aiohttp import ClientSession
 
-from nethermind.idealis.parse.starknet.abi import is_dispatcher_impl_proxy
+from nethermind.idealis.parse.starknet.abi import (
+    UPGRADED_EVENT_SELECTOR,
+    is_dispatcher_class_proxy,
+)
 from nethermind.idealis.rpc.starknet.core import (
     _starknet_block_id,
+    get_events_for_contract,
     sync_get_current_block,
 )
 from nethermind.idealis.types.starknet.contracts import ContractImplementation
+from nethermind.idealis.types.starknet.enums import ProxyKind
 from nethermind.idealis.utils import to_bytes, to_hex
 from nethermind.starknet_abi.dispatch import DecodingDispatcher
 
@@ -247,7 +252,7 @@ async def get_class_history(
     return implementation_history
 
 
-async def get_proxy_impl_history(
+async def _generate_proxy_history_bisection(
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -255,10 +260,6 @@ async def get_proxy_impl_history(
     from_block: int,
     to_block: int,
 ) -> dict[str, str]:
-    """
-    Get the contract history of implementation classes and their deploy/upgrade blocks
-    """
-
     initial_impl = await get_proxied_felt(
         contract=contract_address,
         block_number=from_block,
@@ -307,6 +308,47 @@ async def get_proxy_impl_history(
     return proxy_history
 
 
+async def get_proxy_impl_history(
+    aiohttp_session: ClientSession,
+    rpc_url: str,
+    contract_address: bytes,
+    proxy_kind: ProxyKind,
+    from_block: int,
+    to_block: int,
+) -> dict[str, str]:
+    """
+    Get the contract history of implementation classes and their deploy/upgrade blocks
+    """
+    match proxy_kind:
+        case ProxyKind.oz_event_proxy:
+            logger.warning(
+                f"Contract 0x{contract_address.hex()} implements a proxy without a "
+                f"get_implementation view function... Querying proxy implementation history from events can "
+                f"take several minutes"
+            )
+
+            proxy_events = await get_events_for_contract(
+                contract_address=contract_address,
+                event_keys=[UPGRADED_EVENT_SELECTOR],
+                from_block=from_block,
+                to_block=to_block,
+                rpc_url=rpc_url,
+                aiohttp_session=aiohttp_session,
+            )
+
+            return {str(e.block_number): to_hex(e.data[0], pad=32) for e in proxy_events}
+
+        case _:
+            return await _generate_proxy_history_bisection(
+                aiohttp_session=aiohttp_session,
+                rpc_url=rpc_url,
+                contract_address=contract_address,
+                proxy_method=proxy_kind.function_selector(),
+                from_block=from_block,
+                to_block=to_block,
+            )
+
+
 async def generate_contract_implementation(
     class_decoder: DecodingDispatcher,
     rpc_url: str,
@@ -329,15 +371,13 @@ async def generate_contract_implementation(
         # runs once for each unique impl class of the contract
 
         # Check if the class has a proxy method, and the selector of this method
-        is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, to_bytes(class_hash, pad=32))
+        proxy_kind = is_dispatcher_class_proxy(class_decoder, to_bytes(class_hash, pad=32))
 
-        if not is_proxy:
+        if proxy_kind is None:
             contract_impl_history.update({str(block): class_hash})
             continue
 
-        if proxy_method is None:
-            raise ValueError(f"Class {class_hash} is a proxy, but has no proxy method")
-
+        # TODO: Write new generate_proxy_impl_history function w/ Open Zeppelin Events
         # Proxy Handling Logic
         if len(class_history_items) - 1 == item_idx:
             proxy_to_block = to_block
@@ -349,7 +389,7 @@ async def generate_contract_implementation(
             aiohttp_session=aiohttp_session,
             rpc_url=rpc_url,
             contract_address=contract_address,
-            proxy_method=proxy_method,
+            proxy_kind=proxy_kind,
             from_block=block,
             to_block=proxy_to_block,
         )
@@ -410,9 +450,9 @@ async def update_contract_implementation(
         # Update Root Class History
         contract_history.history.update({str(k): v for k, v in class_history.items()})
 
-    latest_root_proxy, latest_root_proxy_method = is_dispatcher_impl_proxy(class_decoder, latest_root_impl)
+    proxy_kind = is_dispatcher_class_proxy(class_decoder, latest_root_impl)
 
-    if latest_root_impl == target_implementation and not latest_root_proxy:
+    if latest_root_impl == target_implementation and proxy_kind is None:
         # Implementation has not changed, and current root class is not proxy
         contract_history.update_block = to_block
         return contract_history
@@ -429,9 +469,9 @@ async def update_contract_implementation(
             to_bytes(root_impl, pad=32) if isinstance(root_impl, str) else to_bytes(root_impl["proxy_class"], pad=32)
         )
 
-        is_proxy, proxy_method = is_dispatcher_impl_proxy(class_decoder, root_impl_class)
+        proxy_kind = is_dispatcher_class_proxy(class_decoder, root_impl_class)
 
-        if proxy_method is None:  # If proxy method is none, is_proxy is false
+        if proxy_kind is None:  # root_impl_class is not a proxy
             continue  # No need to update proxy impls
 
         if isinstance(root_impl, str):  # No proxy history yet
@@ -449,7 +489,7 @@ async def update_contract_implementation(
             aiohttp_session=aiohttp_session,
             rpc_url=rpc_url,
             contract_address=contract_history.contract_address,
-            proxy_method=latest_root_proxy_method,
+            proxy_kind=proxy_kind,
             from_block=proxy_search_from,
             to_block=proxy_to_block,
         )
@@ -468,9 +508,6 @@ def get_implementation_proxy_felts(contract_implementation: ContractImplementati
 
     This function is useful for generating a list of all contracts that need to be loaded in order to get the impl
     class for a given contract address at a given block number even if proxies are in place.
-
-    :param contract_implementation:
-    :return:
     """
     proxy_felts = {  # remove duplicates w/ set
         to_bytes(proxy, pad=32)

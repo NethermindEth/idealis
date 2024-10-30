@@ -65,7 +65,17 @@ jobs = 12
 ignore-paths = [ "^tests\\.*$" ]
 py-version = "3.12"
 suggestion-mode = true
-disable=["C0103", "C0114", "R0801", "R0902", "R0903", "R1719", "W1203", "W1514"]
+disable=[
+    "C0103",
+    "C0114",
+    "C0115",  # Missing Class Docstring... Most classes are self-explanatory dataclasses
+    "R0801",
+    "R0902",
+    "R0903",
+    "R1719",
+    "W1203",
+    "W1514",
+]
 
 
 [tool.mypy]

@@ -176,7 +176,7 @@ def parse_call_trace(
         to_address=to_bytes(trace_dict["action"]["to"], pad=20),
         input=to_bytes(trace_dict["action"]["input"]),
         gas_supplied=hex_to_int(trace_dict["action"]["gas"]),
-        gas_used=hex_to_int(trace_result["gasUsed"]) if trace_result else None,
+        gas_used=hex_to_int(trace_result["gasUsed"]) if trace_result else 0,
         output=to_bytes(trace_result["output"]) if trace_result else None,
         call_type=TraceCallType(trace_dict["action"]["callType"]),
         value=hex_to_int(trace_dict["action"].get("value", "0")),

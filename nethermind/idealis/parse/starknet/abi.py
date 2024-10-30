@@ -1,7 +1,10 @@
 import logging
+from typing import Sequence
 
-from nethermind.starknet_abi.abi_types import StarknetCoreType
-from nethermind.starknet_abi.dispatch import DecodingDispatcher, StarknetAbi
+from nethermind.idealis.types.starknet.enums import ProxyKind
+from nethermind.starknet_abi.abi_types import StarknetCoreType, StarknetType
+from nethermind.starknet_abi.decoding_types import AbiEvent, AbiParameter
+from nethermind.starknet_abi.dispatch import DecodingDispatcher, StarknetAbi, _id_hash
 from nethermind.starknet_abi.utils import starknet_keccak
 
 # ERC20 & ERC721 Functions -----------------------------------
@@ -26,19 +29,25 @@ ERC_TRANSFER_EVENT = "Transfer"
 ERC_APPROVAL_EVENT = "Approval"
 ERC_APPROVAL_FOR_ALL_EVENT = "ApprovalForAll"
 
+# Proxy Selectors & Events ------------------------------------
 
-# Proxy Functions & Selectors --------------------------------
-GET_CAMEL_FUNC = "getImplementation"
-GET_SNAKE_FUNC = "get_implementation"
-GET_HASH_CAMEL_FUNC = "getImplementationHash"
-GET_HASH_SNAKE_FUNC = "get_implementation_hash"
-IMPL_SNAKE_FUNC = "implementation"
-
-GET_CAMEL_SELECTOR = starknet_keccak(GET_CAMEL_FUNC.encode())
-GET_SNAKE_SELECTOR = starknet_keccak(GET_SNAKE_FUNC.encode())
-GET_HASH_CAMEL_SELECTOR = starknet_keccak(GET_HASH_CAMEL_FUNC.encode())
-GET_HASH_SNAKE_SELECTOR = starknet_keccak(GET_HASH_SNAKE_FUNC.encode())
-IMPL_SNAKE_SELECTOR = starknet_keccak(IMPL_SNAKE_FUNC.encode())
+CONSTRUCTOR_SIGNATURE = starknet_keccak(b"constructor")
+UPGRADED_EVENT = AbiEvent(
+    name="Upgraded",
+    parameters=["implementation"],
+    data={"implementation": StarknetCoreType.Felt},
+    keys={},
+)
+ADMIN_CHANGED_EVENT = AbiEvent(
+    name="AdminChanged",
+    parameters=["previousAdmin", "newAdmin"],
+    data={"previousAdmin": StarknetCoreType.Felt, "newAdmin": StarknetCoreType.Felt},
+    keys={},
+)
+UPGRADED_EVENT_SELECTOR = starknet_keccak(UPGRADED_EVENT.name.encode())
+UPGRADED_FUNCTION_TYPE_ID = _id_hash(UPGRADED_EVENT.id_str())
+ADMIN_CHANGED_SELECTOR = starknet_keccak(ADMIN_CHANGED_EVENT.name.encode())
+ADMIN_CHANGED_EVENT_TYPE_ID = _id_hash(ADMIN_CHANGED_EVENT.id_str())
 
 
 root_logger = logging.getLogger("nethermind")
@@ -52,69 +61,90 @@ def is_class_account(class_abi: StarknetAbi) -> bool:
     )
 
 
-def is_class_proxy(class_abi: StarknetAbi) -> bool:
-    return any(
-        proxy_func in class_abi.functions
-        for proxy_func in (
-            GET_CAMEL_FUNC,
-            GET_SNAKE_FUNC,
-            GET_HASH_CAMEL_FUNC,
-            GET_HASH_SNAKE_FUNC,
-            IMPL_SNAKE_FUNC,
-        )
-    )
-
-
-def is_dispatcher_impl_proxy(decoder: DecodingDispatcher, target_impl: bytes) -> tuple[bool, bytes | None]:
+def _check_proxy_function(function_name: str, output_types: Sequence[StarknetType], class_hash: bytes | None = None):
     """
-
-    :param decoder:
-    :param target_impl:
-    :return:  [is-proxy, proxy-method-selector]
+    Verify that a proxy function returns a single value, and that value is a Felt, ClassHash or ContractAddress
     """
-
-    target_impl_abi = decoder.get_class(target_impl)
-
-    if target_impl_abi is None:
-        logger.error(f"ABI for class 0x{target_impl.hex()} not in ABI Decoder")
-        return False, None
-
-    if GET_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_SNAKE_SELECTOR
-
-    elif GET_HASH_CAMEL_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_HASH_CAMEL_SELECTOR
-
-    elif GET_CAMEL_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_CAMEL_SELECTOR
-
-    elif GET_HASH_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = GET_HASH_SNAKE_SELECTOR
-
-    elif IMPL_SNAKE_SELECTOR[-8:] in target_impl_abi.function_ids:
-        proxy_method_selector = IMPL_SNAKE_SELECTOR
-
-    else:
-        proxy_method_selector = None
-
-    if proxy_method_selector is None:
-        return False, None
-
-    function_type_id = target_impl_abi.function_ids[proxy_method_selector[-8:]].decoder_reference
-    _, output_types = decoder.function_types[function_type_id]
-
     if len(output_types) != 1 or output_types[0] not in [  # implementation function returns single value
         StarknetCoreType.Felt,
         StarknetCoreType.ContractAddress,
         StarknetCoreType.ClassHash,
     ]:
+        class_id = f"0x{class_hash.hex()}" if class_hash else "Unknown"
+
         raise ValueError(
-            f"Class 0x{target_impl.hex()} implements a proxy method 0x{proxy_method_selector.hex()} "
+            f"Class {class_id} implements proxy method '{function_name}' "
             f"which returns an invalid ABI Type: [{','.join(t.id_str() for t in output_types)}] -- "
-            f"Proxy functions must return [Felt] or [ContractAddress]"
+            f"Proxy functions must return [Felt] [ContractAddress] or [ClassHash]"
         )
 
-    return True, proxy_method_selector
+
+def is_class_proxy(class_abi: StarknetAbi) -> ProxyKind | None:
+    """
+    Check if a class is a proxy.  If it implements a proxy standard, return it as ProxyKind.  If class is not a proxy,
+    return None.
+    """
+
+    for proxy_func in ProxyKind.supported_functions():
+        if proxy_func.function_name() in class_abi.functions:
+            abi_function_info = class_abi.functions[proxy_func.function_name()]
+            try:
+                _check_proxy_function(proxy_func.function_name(), abi_function_info.outputs, class_abi.class_hash)
+                return proxy_func
+            except ValueError:  # Proxy func returns too much data or wrong types
+                return None
+
+    if (
+        "Upgraded" in class_abi.events
+        and "AdminChanged" in class_abi.events
+        and class_abi.constructor
+        and  # Constructor is not none
+        # One of the arguments to constructor contains implementation
+        "implementation" in [p.name.lower() for p in class_abi.constructor.inputs]
+    ):
+        return ProxyKind.oz_event_proxy
+
+    return None
+
+
+def is_dispatcher_class_proxy(decoder: DecodingDispatcher, class_hash: bytes) -> ProxyKind | None:
+    """
+    Checks a DecodingDispatcher if a class is a proxy and returns it as ProxyKind.
+    # TODO: Refactor & Comment this evil shit
+    """
+
+    class_abi_data = decoder.get_class(class_hash)
+    if class_abi_data is None:
+        return None  # Class hash not loaded, or if pessimism enabled... invalid class
+
+    for proxy_func in ProxyKind.supported_functions():
+        if proxy_func.function_selector()[-8:] in class_abi_data.function_ids:
+            abi_function_info = class_abi_data.function_ids[proxy_func.function_selector()[-8:]]
+            _, output_types = decoder.function_types[abi_function_info.decoder_reference]
+            try:
+                _check_proxy_function(proxy_func.function_name(), output_types, class_hash)
+                return proxy_func
+            except ValueError:  # Proxy func returns too much data or wrong types
+                return None
+
+    if (
+        UPGRADED_EVENT_SELECTOR[-8:] in class_abi_data.event_ids
+        and ADMIN_CHANGED_SELECTOR[-8:] in class_abi_data.event_ids
+        and CONSTRUCTOR_SIGNATURE[-8:] in class_abi_data.function_ids
+    ):
+        # One of the arguments to constructor contains implementation
+        constructor_args = [
+            param.name.lower()
+            for param in decoder.function_types[
+                class_abi_data.function_ids[CONSTRUCTOR_SIGNATURE[-8:]].decoder_reference
+            ][0]
+        ]
+        if not any("implementation" in arg.lower() for arg in constructor_args):
+            return None  # implementation isn't in constructor args
+
+        return ProxyKind.oz_event_proxy
+
+    return None
 
 
 def is_class_erc20_token(class_abi: StarknetAbi) -> bool:

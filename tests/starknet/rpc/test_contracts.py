@@ -11,6 +11,7 @@ from nethermind.idealis.rpc.starknet.contract import (
     get_proxied_felt,
     update_contract_implementation,
 )
+from nethermind.idealis.types.starknet.enums import ProxyKind
 from nethermind.idealis.utils import to_bytes, to_hex
 from nethermind.starknet_abi.utils import starknet_keccak
 from tests.addresses import STARKNET_ETH
@@ -276,6 +277,43 @@ async def test_update_contract_impl(starknet_rpc_url, async_http_session, starkn
     assert full_generation_impl == incremental_impl
 
 
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_oz_event_proxy_contract_implementation(starknet_rpc_url, async_http_session, starknet_class_decoder):
+    # Proxy.cairo with no impl view function
+    class_hash = to_bytes("0x01067c8f4aa8f7d6380cc1b633551e2a516d69ad3de08af1b3d82e111b4feda4")
+    starknet_id_naming_contract = to_bytes("0x06ac597f8116f886fa1c97a23fa4e08299975ecaf6b598873ca6792b9bbfb678")
+
+    class_decoder = await starknet_class_decoder([class_hash])
+    contract_impl = await generate_contract_implementation(
+        class_decoder=class_decoder,
+        aiohttp_session=async_http_session,
+        rpc_url=starknet_rpc_url,
+        contract_address=starknet_id_naming_contract,
+        to_block=620_000,
+    )
+
+    assert contract_impl.history == {
+        "12628": {
+            "proxy_class": "0x01067c8f4aa8f7d6380cc1b633551e2a516d69ad3de08af1b3d82e111b4feda4",
+            "12628": "0x0280601107dd4067877f74b646c903a51852202bf6f5a3c4dda54e367ca16910",
+            "15913": "0x000836790d91c2ac81755225055bfd06d00c2fd75391d71a90cf6b938b9bd5ff",
+            "18060": "0x062d0d938c2c4c378a96de3d5d0504d17a5e6041b1fecb60af5a8d3f192bf388",
+            "18806": "0x059739125413cd34b2e0e8282b6e0a693c69d565b013479510bff5da64dff85b",
+            "19270": "0x048d5e541556b53836a58854a08f6e095f9551c5cb4089d4c3113000fd8ae1b1",
+            "32185": "0x002d4c25ad2cefa737b06c1eac451c208b206c8d231ff550f8794c8efc676acb",
+            "46181": "0x01797f258b41e27fa783bbe3ae13559a4507fd084d7205584a57c4ed246b2248",
+            "137685": "0x0777ba3d99380d889d4cee7148a35c608c18bb4c993643cdfa013143346d9753",
+            "194696": "0x07410053c3380c2c8141cb77776db8770c520139de7ea42bbf54bee291664113",
+            "312211": "0x028a26116e6ede7e2c78e5a8971664326c8c2825039be7e9ff303439a7764724",
+            "321725": "0x053f5080443e2aa66464b3f8bcbb59045fd2f2007967ba9a5c455dbd92a4867f",
+            "445515": "0x00e092ac53e8a8752b96bcb6225f857ec10c571da5d5574a01bd3664b66fea22",
+        },
+        "607823": "0x05d7ef4ab1430f353a3b90d41b9cd56d7469155801d94355d397e1a8035ad570",
+        "608390": "0x026abdaa32cdf02d10f6383d2ec3a5312ee78203a5f2614b9f186dedb37dcb26",
+    }
+
+
 # In this block, there is a deploy transaction at tx_idx 7 which creates a new class.
 # At tx_idx 18, there is a declare transaction which then also declares this class.
 # Both transactions are successful & accepted on L1.
@@ -304,3 +342,34 @@ async def test_duplicate_class_declaration_parsing(async_http_session, starknet_
         class_declarations[2].declare_transaction_hash.hex()
         == "038af55ce5bb6a3a5bf8381741199344c3c2da132b2a99bb2e3b49d5032a1753"
     )
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_event_and_function_proxies_match(starknet_class_decoder, async_http_session, starknet_rpc_url):
+    avnu_exchange_contract = to_bytes("0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f")
+
+    impl_a = to_bytes("0x05ee939756c1a60b029c594da00e637bf5923bf04a86ff163e877e899c0840eb")
+
+    class_decoder = await starknet_class_decoder([impl_a])
+
+    proxy_function_impl = await generate_contract_implementation(
+        class_decoder=class_decoder,
+        aiohttp_session=async_http_session,
+        rpc_url=starknet_rpc_url,
+        contract_address=avnu_exchange_contract,
+        to_block=300_000,
+    )
+
+    # Remove get_implementation function from Decoder, will change ProxyKind to OZ Event Proxy
+    del class_decoder.class_ids[impl_a[-8:]].function_ids[ProxyKind.get_hash_camel.function_selector()[-8:]]
+
+    oz_event_proxy_impl = await generate_contract_implementation(
+        class_decoder=class_decoder,
+        aiohttp_session=async_http_session,
+        rpc_url=starknet_rpc_url,
+        contract_address=avnu_exchange_contract,
+        to_block=300_000,
+    )
+
+    assert proxy_function_impl == oz_event_proxy_impl

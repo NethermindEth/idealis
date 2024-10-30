@@ -66,7 +66,7 @@ class CallTraceResponse(DataclassDBInterface):
     from_address: bytes
     to_address: bytes
     input: bytes
-    output: bytes
+    output: bytes | None
 
 
 @dataclass(slots=True)

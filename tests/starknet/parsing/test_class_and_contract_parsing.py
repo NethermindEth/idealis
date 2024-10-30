@@ -237,3 +237,13 @@ def test_deploy_contract_parsing(starknet_rpc_url):
         "address": "0x067c2665fbdd32ded72c0665f9658c05a5f9233c8de2002b3eba8ae046174efd",
         "value": "0x02221def5413ed3e128051d5dff3ec816dbfb9db4454b98f4aa47804cb7a13d2",
     }
+
+
+def test_proxy_detection():
+    # TODO: Assert that valid proxies are handled correctly...
+
+    # The starknet ID proxy contract does not have a get_implementation view method....
+    # https://voyager.online/class/0x01067c8f4aa8f7d6380cc1b633551e2a516d69ad3de08af1b3d82e111b4feda4
+    # To detect proxies, add checks for constructor arguments and Upgraded events???
+
+    pass

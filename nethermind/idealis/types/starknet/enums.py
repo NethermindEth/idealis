@@ -1,5 +1,7 @@
 from enum import Enum
 
+from nethermind.starknet_abi.utils import starknet_keccak
+
 
 class BlockDataAvailabilityMode(Enum):
     """
@@ -94,3 +96,52 @@ class ClassType(Enum):
     erc20 = "ERC20"
     erc721 = "ERC721"
     erc1155 = "ERC1155"
+
+
+class ProxyKind(Enum):
+    # Event based proxies...  Proxies impls are pulled from events
+    oz_event_proxy = "oz_event_proxy"  # Openzeppelin proxy class with Upgraded and AdminChanged events
+
+    # Function based proxies...  proxy impls generated with bisection algorithm
+    get_impl_snake = "get_impl_snake"  # get_implementation() -> felt
+    get_impl_camel = "get_impl_camel"  # getImplementation() -> felt
+    get_hash_snake = "get_hash_snake"  # get_implementation_hash() -> felt
+    get_hash_camel = "get_hash_camel"  # getImplementationHash() -> felt
+    implementation = "implementation"  # implementation() -> felt
+
+    @classmethod
+    def supported_functions(cls) -> list["ProxyKind"]:
+        """Return List of supported Proxy Functions"""
+        return [
+            ProxyKind.get_impl_snake,
+            ProxyKind.get_impl_camel,
+            ProxyKind.get_hash_snake,
+            ProxyKind.get_hash_camel,
+            ProxyKind.implementation,
+        ]
+
+    def function_name(self) -> str:
+        """Map ProxyKind to ABI Function Name"""
+        match self:
+            case ProxyKind.oz_event_proxy:
+                raise ValueError("ProxyKind.oz_event_proxy does not have a function name")
+            case ProxyKind.get_impl_snake:
+                return "get_implementation"
+            case ProxyKind.get_impl_camel:
+                return "getImplementation"
+            case ProxyKind.get_hash_snake:
+                return "get_implementation_hash"
+            case ProxyKind.get_hash_camel:
+                return "getImplementationHash"
+            case ProxyKind.implementation:
+                return "implementation"
+            case _:
+                raise ValueError(f"{self} does not have a function name")
+
+    def function_selector(self) -> bytes:
+        """Map ProxyKind to ABI Function Selector"""
+        match self:
+            case ProxyKind.oz_event_proxy:
+                raise ValueError("ProxyKind.oz_event_proxy does not have a function selector")
+            case _:
+                return starknet_keccak(self.function_name().encode())

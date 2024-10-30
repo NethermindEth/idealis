@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 
+import aiohttp
 import pytest
 import pytest_asyncio
 from aiohttp import ClientSession

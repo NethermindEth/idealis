@@ -259,32 +259,63 @@ async def get_events_for_contract(
     aiohttp_session: ClientSession,
     page_size: int = 1024,
 ) -> list[Event]:
-    async with aiohttp_session.post(
-        rpc_url,
-        json=(
-            payload := {
-                "jsonrpc": "2.0",
-                "method": "starknet_getEvents",
-                "params": {
-                    "filter": {
-                        "from_block": _starknet_block_id(from_block),
-                        "to_block": _starknet_block_id(to_block),
-                        "address": to_hex(contract_address, pad=32),
-                        "keys": [
-                            [to_hex(key, pad=32) for key in event_keys]  # Key[0] searches event_selector...
-                            # Additional keys can search through indexed event keys?
-                            # TODO: Test & implement
-                        ],
-                        "continuation_token": f"{from_block}-0",
-                        "chunk_size": page_size,  # Max chunk size
-                    }
-                },
-                "id": 1,
+    """
+    Get all starknet events in a block range
+
+    .. warning:
+        THIS METHOD CAN BE SUPER EXPENSIVE...  If an RPC node sets a low MAX-SCAB-BLOCKS-GET-EVENTS in the config,
+        this will result in hundreds or thousands of paginated calls...
+
+    :param contract_address: Contract to search
+    :param event_keys: list of event selectors to query
+    :param from_block: inclusive from block
+    :param to_block: exclusive to block
+    :param rpc_url:
+    :param aiohttp_session:
+    :param page_size: Number of events to return per query.  Defaults to max page size
+    :return: [Event]
+    """
+
+    async def _get_page_of_events(_continuation_token: str | None = None) -> tuple[list[Event], str | None]:
+        request_params = {
+            "filter": {
+                "from_block": _starknet_block_id(from_block),
+                "to_block": _starknet_block_id(to_block - 1),
+                "address": to_hex(contract_address, pad=32),
+                "keys": [
+                    [to_hex(key, pad=32) for key in event_keys]  # Key[0] searches event_selector...
+                    # Additional keys can search through indexed event keys?
+                    # TODO: Test & implement
+                ],
+                "chunk_size": page_size,  # Max chunk size
             }
-        ),
-    ) as response:
-        events_json = await parse_async_rpc_response(payload, response)
-        return parse_event_response(events_json)
+        }
+
+        if _continuation_token:
+            request_params["filter"]["continuation_token"] = _continuation_token
+
+        async with aiohttp_session.post(
+            rpc_url,
+            json=(
+                payload := {
+                    "jsonrpc": "2.0",
+                    "method": "starknet_getEvents",
+                    "params": request_params,
+                    "id": 1,
+                }
+            ),
+        ) as response:
+            events_json = await parse_async_rpc_response(payload, response)
+            token = events_json.get("continuation_token")
+            return parse_event_response(events_json), token
+
+    events, continuation_token = await _get_page_of_events()
+
+    while continuation_token is not None:
+        _events, continuation_token = await _get_page_of_events(continuation_token)
+        events.extend(_events)
+
+    return events
 
 
 async def starknet_call(

@@ -53,7 +53,7 @@ def get_user_operations(traces: list[Trace] | None) -> list[DecodedOperation]:
             )
         ]
 
-    multicalls: list[Trace] = get_toplevel_child_traces(traces, execute_trace.trace_address)
+    multicalls: Sequence[Trace] = get_toplevel_child_traces(traces, execute_trace.trace_address)
     multicalls = sorted(multicalls, key=lambda t: t.trace_address)
     decoded_ops = []
     for call in multicalls:
