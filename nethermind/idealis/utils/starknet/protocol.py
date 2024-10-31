@@ -2,7 +2,7 @@ from nethermind.idealis.utils import to_bytes
 
 STARKNET_ID_MAINNET_NAMING_CONTRACT = to_bytes("0x06ac597f8116f886fa1c97a23fa4e08299975ecaf6b598873ca6792b9bbfb678")
 STARKNET_ID_MAINNET_VERIFIER_CONTRACT = to_bytes("0x07d14dfd8ee95b41fce179170d88ba1f0d5a512e13aeb232f19cfeec0a88f8bf")
-STARKNET_ID_MAINNET_IDENTITY = to_bytes("0x05dbdedc203e92749e2e746e2d40a768d966bd243df04a6b712e222bc040a9af")
+STARKNET_ID_MAINNET_IDENTITY_CONTRACT = to_bytes("0x05dbdedc203e92749e2e746e2d40a768d966bd243df04a6b712e222bc040a9af")
 
 STARKNET_ID_BASIC_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789-"
 STARKNET_ID_BIG_ALPHABET = "这来"
@@ -14,6 +14,16 @@ def _extract_stars(domain_name: str) -> tuple[str, int]:
         domain_name = domain_name[:-1]
         k += 1
     return domain_name, k
+
+def decode_subdomain(domains: list[int]) -> str:
+    return f"{'.'.join(decode_starknet_id_domain(d) for d in domains)}.stark"
+
+
+def encode_subdomain(subdomain: str) -> list[int]:
+    if subdomain.endswith('.stark'):
+        subdomain = subdomain[:-6]
+
+    return [encode_starknet_id_domain(d) for d in subdomain.split('.')]
 
 
 def decode_starknet_id_domain(encoded_domain_id: int) -> str:

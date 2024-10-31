@@ -12,16 +12,19 @@ class StarknetIDUpdate(DataclassDBInterface):
     transaction_index: int
     event_index: int
 
-    block_timestamp: int
-    transaction_hash: bytes
+    block_timestamp: int | None
+    transaction_hash: bytes | None
 
+    updated_resolve_contract: bytes | None
     owner_update: bytes | None
-    updated_user_data: bytes | None
-    updated_verifier_data: bytes | None
+    updated_expire_timestamp: int | None
+    updated_user_data: dict[str, Any] | None
+    updated_verifier_data: dict[str, Any] | None
 
 
+@dataclass(slots=True)
 class StarknetID(DataclassDBInterface):
-    domain_name: bytes
+    domain_name: str
 
     owner_address: bytes
     resolve_address: bytes
