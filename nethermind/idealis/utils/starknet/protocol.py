@@ -15,15 +15,16 @@ def _extract_stars(domain_name: str) -> tuple[str, int]:
         k += 1
     return domain_name, k
 
+
 def decode_subdomain(domains: list[int]) -> str:
     return f"{'.'.join(decode_starknet_id_domain(d) for d in domains)}.stark"
 
 
 def encode_subdomain(subdomain: str) -> list[int]:
-    if subdomain.endswith('.stark'):
+    if subdomain.endswith(".stark"):
         subdomain = subdomain[:-6]
 
-    return [encode_starknet_id_domain(d) for d in subdomain.split('.')]
+    return [encode_starknet_id_domain(d) for d in subdomain.split(".")]
 
 
 def decode_starknet_id_domain(encoded_domain_id: int) -> str:

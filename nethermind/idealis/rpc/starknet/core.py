@@ -32,12 +32,11 @@ def _starknet_block_id(block_id: int | str | bytes) -> str | dict[str, str | int
     """
     if isinstance(block_id, str):
         return block_id
-    elif isinstance(block_id, bytes):
+    if isinstance(block_id, bytes):
         return {"block_hash": to_hex(block_id)}
-    elif isinstance(block_id, int):
+    if isinstance(block_id, int):
         return {"block_number": block_id}
-    else:
-        raise ValueError(f"Cannot parse {block_id} into starknet block_id")
+    raise ValueError(f"Cannot parse {block_id} into starknet block_id")
 
 
 async def get_current_block(aiohttp_session: ClientSession, json_rpc: str) -> int:

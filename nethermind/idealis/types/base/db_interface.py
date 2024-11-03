@@ -30,7 +30,7 @@ class DataclassDBInterface:
                 encode_field = custom_parser[field_name](encode_field)
 
             if json_fields and field_name in json_fields:
-                return_cols.append(json_encoder(encode_field))
+                return_cols.append(json_encoder(encode_field))  # type: ignore
             else:
                 return_cols.append(encode_field)
 
