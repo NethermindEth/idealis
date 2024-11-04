@@ -27,15 +27,9 @@ class StarknetIDUpdate(DataclassDBInterface):
     block_timestamp: int | None
     transaction_hash: bytes | None
 
+    identity: bytes  # byte repr of the token id, or starknet_keccak of utf-8 encoded domain name
     kind: StarknetIDUpdateKind
     data: dict[str, Any]
-
-    # domain_name: str | None
-    # updated_resolve_contract: bytes | None  # Updates to the address -> domain resolution
-    # identity_nft_update: bytes | None  # Updates to the identity NFT tokenID
-    # updated_expire_timestamp: int | None
-    # updated_user_data: dict[str, Any] | None
-    # updated_verifier_data: dict[str, Any] | None
 
 
 @dataclass(slots=True)

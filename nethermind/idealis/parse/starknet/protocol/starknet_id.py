@@ -229,6 +229,7 @@ def parse_starknet_id_updates(
 
             starknet_id_updates.append(
                 StarknetIDUpdate(
+                    identity=starknet_keccak(data[1].encode('utf-8')),
                     kind=StarknetIDUpdateKind.subdomain_to_address_update,
                     data={"domain": data[1], "address": data[0]},
                     **update_params,  # type: ignore
@@ -254,9 +255,9 @@ def parse_starknet_id_updates(
 
                 starknet_id_updates.append(
                     StarknetIDUpdate(
+                        identity=_id.to_bytes(32, 'big'),
                         kind=StarknetIDUpdateKind.identity_update,
                         data={
-                            "id": _id,
                             "domains": mints,
                             "new_owner": transfer_to or id_owner_change,
                             "old_owner": transfer_from,
@@ -278,8 +279,9 @@ def parse_starknet_id_updates(
 
                 starknet_id_updates.append(
                     StarknetIDUpdate(
+                        identity=_id.to_bytes(32, 'big'),
                         kind=StarknetIDUpdateKind.identity_data_update,
-                        data={"id": _id, "verifier_data": verifier_data, "user_data": user_data},
+                        data={"verifier_data": verifier_data, "user_data": user_data},
                         **update_params,  # type: ignore
                     )
                 )
@@ -311,7 +313,8 @@ def generate_starknet_id_state(
                 address_to_domain[update.data["address"]] = update.data["domain"]
 
             case StarknetIDUpdateKind.identity_update:
-                existing_identity = identity_state.get(update.data["id"])
+                token_id = int.from_bytes(update.identity, 'big')
+                existing_identity = identity_state.get(token_id)
 
                 # Updating Existing Identity NFT With new Domain or Owner
                 if existing_identity:
@@ -322,26 +325,28 @@ def generate_starknet_id_state(
 
                     if update.data["new_owner"]:
                         existing_identity.owner = update.data["new_owner"]
-                        address_to_identity[update.data["new_owner"]] = update.data["id"]
+                        address_to_identity[update.data["new_owner"]] = token_id
 
                 # Minting New Identity NFT & Setting Domain & User Data
                 else:
-                    identity_state[update.data["id"]] = StarknetIDIdentity(
-                        identity_nft_id=update.data["id"],
+                    identity_state[token_id] = StarknetIDIdentity(
+                        identity_nft_id=token_id,
                         owner=update.data["new_owner"],
                         domain=update.data["domains"][0][0],  # TODO: Handle multi domains per ID cases better...
                         expire=update.data["domains"][0][1],
                         verifier_data={},
                         user_data={},
                     )
-                    address_to_identity[update.data["new_owner"]] = update.data["id"]
+                    address_to_identity[update.data["new_owner"]] = token_id
 
             case StarknetIDUpdateKind.identity_data_update:
-                if update.data["id"] not in identity_state:
-                    raise ValueError(f"Cannot add Data to Nonexistent Identity {update.data['id']}")
+                token_id = int.from_bytes(update.identity, 'big')
+
+                if token_id not in identity_state:
+                    raise ValueError(f"Cannot add Data to Nonexistent Identity {token_id}")
 
                 new_verifier_data, new_user_data = update.data["verifier_data"], update.data["user_data"]
-                identity = identity_state[update.data["id"]]
+                identity = identity_state[token_id]
 
                 if new_verifier_data:
                     identity.verifier_data.update(new_verifier_data)

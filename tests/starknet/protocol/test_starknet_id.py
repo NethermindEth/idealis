@@ -48,6 +48,7 @@ def test_parse_starknet_id_subdomain():
 
     starknet_id_updates = parse_starknet_id_updates([naming_event])
 
+    assert starknet_id_updates[0].identity == starknet_keccak(b'villanita.braavos.stark')
     assert starknet_id_updates[0].kind == StarknetIDUpdateKind.subdomain_to_address_update
     assert starknet_id_updates[0].data == {
         "domain": "villanita.braavos.stark",
@@ -78,9 +79,9 @@ async def test_parse_starknet_id_state(starknet_rpc_url, async_http_session):
     starknet_id_updates = parse_starknet_id_updates(filtered_events)
     # assert len(starknet_id_updates) == 2
 
+    assert starknet_id_updates[0].identity == (73857595493).to_bytes(32, 'big')
     assert starknet_id_updates[0].kind == StarknetIDUpdateKind.identity_update
     assert starknet_id_updates[0].data == {
-        "id": 73857595493,
         "domains": [
             (
                 "aliaksandra.stark",
@@ -91,9 +92,9 @@ async def test_parse_starknet_id_state(starknet_rpc_url, async_http_session):
         "old_owner": None,
     }
 
+    assert starknet_id_updates[1].identity == (73857595493).to_bytes(32, 'big')
     assert starknet_id_updates[1].kind == StarknetIDUpdateKind.identity_data_update
     assert starknet_id_updates[1].data == {
-        "id": 73857595493,
         "verifier_data": {
             "name": (
                 [to_bytes("07053be99dead06f61801c9b5ca6543793cd63d282edf0bfac5e3acaecf103f5")],
