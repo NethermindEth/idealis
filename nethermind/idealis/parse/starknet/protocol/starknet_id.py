@@ -289,6 +289,28 @@ def parse_starknet_id_updates(
     return starknet_id_updates
 
 
+def enrich_starknet_id_updates(
+    updates: list[StarknetIDUpdate],
+    transaction_data: dict[tuple[int, int], tuple[int, bytes]]
+) -> list[StarknetIDUpdate]:
+    """
+    Enrich starknet ID Updates with block timestamp & transaction hash.  Requires a tx position hashmap with block
+    timestamp & tx hash data
+
+    :param updates:  List of Starknet ID Updates
+    :param transaction_data: Dictionary between (block_num, tx_idx) -> (block_timestamp, tx_hash)
+    """
+    for update in updates:
+        tx_data = transaction_data.get((update.block_timestamp, update.transaction_index))
+        if tx_data is None:
+            continue
+
+        update.block_timestamp = tx_data[0]
+        update.transaction_hash = tx_data[1]
+
+    return updates
+
+
 def generate_starknet_id_state(
     identity_state: dict[int, StarknetIDIdentity],
     address_to_domain: dict[bytes, str],
