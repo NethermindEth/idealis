@@ -193,7 +193,7 @@ def sync_get_class_abi(
 
 
 async def get_class_abis(
-    class_hashes: list[bytes], rpc_url: str, aiohttp_session: ClientSession
+    class_hashes: list[bytes], rpc_url: str, aiohttp_session: ClientSession, block_number: int | None
 ) -> Sequence[list[dict[str, Any]] | None]:
     """
     Asynchronously query class ABIs for a list of class hashes.
@@ -208,7 +208,10 @@ async def get_class_abis(
             json={
                 "jsonrpc": "2.0",
                 "method": "starknet_getClass",
-                "params": {"class_hash": to_hex(class_hash), "block_id": "latest"},
+                "params": {
+                    "class_hash": to_hex(class_hash),
+                    "block_id": _starknet_block_id(block_number) if block_number else "latest",
+                },
                 "id": 1,
             },
         ) as class_response:

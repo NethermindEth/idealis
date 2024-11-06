@@ -1,12 +1,14 @@
 import logging
 
+from aiohttp import ClientSession
+
 from nethermind.idealis.parse.starknet.abi import (
     is_class_account,
     is_class_erc20_token,
     is_class_erc721_token,
     is_class_proxy,
 )
-from nethermind.idealis.rpc.starknet.core import sync_get_class_abi
+from nethermind.idealis.rpc.starknet.core import get_class_abis
 from nethermind.idealis.types.starknet.contracts import (
     ClassDeclaration,
     ContractDeployment,
@@ -23,10 +25,11 @@ root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("rpc").getChild("starknet")
 
 
-def get_class_declarations(
+async def get_class_declarations(
     declare_transactions: list[Transaction],
     deploy_transactions: list[Transaction],
     json_rpc: str,
+    client_session: ClientSession,
     known_classes: set[bytes] | None = None,
 ) -> list[ClassDeclaration]:
     """
@@ -44,8 +47,9 @@ def get_class_declarations(
 
     :param declare_transactions: Declare transactions
     :param deploy_transactions: v0 Deploy transactions that are able to declare classes
-    :param known_classes: Cache of classes that we know are already deployed, and don't need to query chain to check
     :param json_rpc: JSON RPC endpoint to query for classes @ block number
+    :param client_session: Aiohttp Client Session for sending RPC requests
+    :param known_classes: Cache of classes that we know are already deployed, and don't need to query chain to check
     """
 
     class_declarations = []
@@ -54,7 +58,8 @@ def get_class_declarations(
         known_classes = set()
 
     ordered_txns = sorted(
-        deploy_transactions + declare_transactions, key=lambda t: (t.block_number, t.transaction_index)
+        deploy_transactions + declare_transactions,
+        key=lambda t: (t.block_number, t.transaction_index),
     )
 
     for tx in ordered_txns:
@@ -68,8 +73,13 @@ def get_class_declarations(
             continue
 
         if tx.type == StarknetTxType.deploy:
-            prev_class = sync_get_class_abi(tx.class_hash, json_rpc, tx.block_number - 1)
-            class_exists_before = False if prev_class is None else True
+            prev_class = await get_class_abis(
+                class_hashes=[tx.class_hash],
+                rpc_url=json_rpc,
+                aiohttp_session=client_session,
+                block_number=tx.block_number - 1,
+            )
+            class_exists_before = False if prev_class[0] is None else True
         else:
             class_exists_before = False
 
@@ -79,22 +89,43 @@ def get_class_declarations(
         if class_exists_before:  # Skip when Deploy txn didnt create class
             continue
 
-        abi_json = sync_get_class_abi(class_hash=tx.class_hash, rpc_url=json_rpc, block_number=tx.block_number)
-
-        declare_class_abi = StarknetAbi.from_json(abi_json=abi_json, abi_name="", class_hash=tx.class_hash)
-
-        class_declarations.append(
-            ClassDeclaration(
-                class_hash=tx.class_hash,
-                declaration_block=tx.block_number,
-                declaration_timestamp=tx.timestamp,
-                declare_transaction_hash=tx.transaction_hash,
-                proxy_kind=is_class_proxy(declare_class_abi),
-                is_account=is_class_account(declare_class_abi),
-                is_erc_20=is_class_erc20_token(declare_class_abi),
-                is_erc_721=is_class_erc721_token(declare_class_abi),
-            )
+        get_classes_response = await get_class_abis(
+            class_hashes=[tx.class_hash], rpc_url=json_rpc, aiohttp_session=client_session, block_number=tx.block_number
         )
+
+        if get_classes_response[0] is None:
+            class_declarations.append(
+                ClassDeclaration(
+                    class_hash=tx.class_hash,
+                    declaration_block=tx.block_number,
+                    declaration_timestamp=tx.timestamp,
+                    declare_transaction_hash=tx.transaction_hash,
+                    proxy_kind=None,
+                    is_account=None,
+                    is_erc_20=None,
+                    is_erc_721=None,
+                )
+            )
+
+        else:
+            declare_class_abi = StarknetAbi.from_json(
+                abi_json=get_classes_response[0],
+                class_hash=tx.class_hash,
+                abi_name="",
+            )
+
+            class_declarations.append(
+                ClassDeclaration(
+                    class_hash=tx.class_hash,
+                    declaration_block=tx.block_number,
+                    declaration_timestamp=tx.timestamp,
+                    declare_transaction_hash=tx.transaction_hash,
+                    proxy_kind=is_class_proxy(declare_class_abi),
+                    is_account=is_class_account(declare_class_abi),
+                    is_erc_20=is_class_erc20_token(declare_class_abi),
+                    is_erc_721=is_class_erc721_token(declare_class_abi),
+                )
+            )
 
     return class_declarations
 

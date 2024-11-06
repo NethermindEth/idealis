@@ -57,9 +57,9 @@ class ClassDeclaration(DataclassDBInterface):
     declare_transaction_hash: bytes
 
     proxy_kind: ProxyKind | None
-    is_account: bool
-    is_erc_20: bool
-    is_erc_721: bool
+    is_account: bool | None
+    is_erc_20: bool | None
+    is_erc_721: bool | None
 
 
 @dataclass(slots=True)
