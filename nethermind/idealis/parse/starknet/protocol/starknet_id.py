@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from nethermind.idealis.parse.starknet.event import TRANSFER_SIGNATURE
@@ -28,6 +29,10 @@ V1_IDENTITY_VERIFIER_DATA_UPDATE = starknet_keccak(b"VerifierDataUpdate")
 V1_IDENTITY_EXTENDED_VERIFIER_DATA_UPDATE = starknet_keccak(b"ExtendedVerifierDataUpdate")
 V1_IDENTITY_USER_DATA_UPDATE = starknet_keccak(b"UserDataUpdate")
 V1_IDENTITY_EXTENDED_USER_DATA_UPDATE = starknet_keccak(b"ExtendedUserDataUpdate")
+
+
+root_logger = logging.getLogger("nethermind")
+logger = root_logger.getChild("parse").getChild("starknet")
 
 
 def _starknet_id_defaults(event: Event, skip_keys: set[str]) -> dict[str, Any]:
@@ -213,78 +218,84 @@ def parse_starknet_id_updates(
     sorted_keys = sorted(grouped_events.keys())
 
     for update_tx in sorted_keys:
-        update_events = grouped_events[update_tx]
-        update_params = {
-            "block_number": update_tx[0],
-            "transaction_index": update_tx[1],
-            "block_timestamp": None,
-            "transaction_hash": None,
-        }
+        try:
+            update_events = grouped_events[update_tx]
+            update_params = {
+                "block_number": update_tx[0],
+                "transaction_index": update_tx[1],
+                "block_timestamp": None,
+                "transaction_hash": None,
+            }
 
-        # Simple Subdomain Registration
-        if len(update_events) == 1 and update_events[0].contract_address == naming_contract:
-            data = _get_addr_to_domain_update(update_events[0])
-            if data is None:
-                raise ValueError(f"Cannot Parse StarknetID subdomain registration for {update_events[0]}")
-
-            starknet_id_updates.append(
-                StarknetIDUpdate(
-                    identity=starknet_keccak(data[1].encode("utf-8")),
-                    kind=StarknetIDUpdateKind.subdomain_to_address_update,
-                    data={"domain": data[1], "address": data[0]},
-                    **update_params,  # type: ignore
-                )
-            )
-
-        # Domain Identity Update -- All updates tied to a Identity Token ID
-        _id_transfers = _get_identity_transfers(update_events, identity_contract)
-        _domain_mints = _get_domain_mints(update_events, naming_contract)
-        _main_id_updates = _get_main_id_updates(update_events, identity_contract)
-        if _id_transfers or _domain_mints or _main_id_updates:
-            distinct_ids = set(_id_transfers or {}).union(_domain_mints or {}).union(_main_id_updates or {})
-
-            for _id in distinct_ids:
-                transfers = _id_transfers.get(_id, []) if _id_transfers else []
-                mints = _domain_mints.get(_id) if _domain_mints else None
-                id_owner_change = _main_id_updates.get(_id) if _main_id_updates else None
-
-                transfer_to = transfers[-1].keys[2] if transfers else None
-                transfer_from = transfers[-1].keys[1] if transfers else None
-                if transfer_from == to_bytes("00", pad=32):
-                    transfer_from = None
+            # Simple Subdomain Registration
+            if len(update_events) == 1 and update_events[0].contract_address == naming_contract:
+                data = _get_addr_to_domain_update(update_events[0])
+                if data is None:
+                    raise ValueError(f"Cannot Parse StarknetID subdomain registration for {update_events[0]}")
 
                 starknet_id_updates.append(
                     StarknetIDUpdate(
-                        identity=_id.to_bytes(32, "big"),
-                        kind=StarknetIDUpdateKind.identity_update,
-                        data={
-                            "domains": mints,
-                            "new_owner": transfer_to or id_owner_change,
-                            "old_owner": transfer_from,
-                        },
+                        identity=starknet_keccak(data[1].encode("utf-8")),
+                        kind=StarknetIDUpdateKind.subdomain_to_address_update,
+                        data={"domain": data[1], "address": data[0]},
                         **update_params,  # type: ignore
                     )
                 )
 
-        # Identity User & Verifier Data Update
-        _verifier_data = _get_identity_verifier_data(update_events, identity_contract)
-        _user_data = _get_identity_user_data(update_events, identity_contract)
+            # Domain Identity Update -- All updates tied to a Identity Token ID
+            _id_transfers = _get_identity_transfers(update_events, identity_contract)
+            _domain_mints = _get_domain_mints(update_events, naming_contract)
+            _main_id_updates = _get_main_id_updates(update_events, identity_contract)
+            if _id_transfers or _domain_mints or _main_id_updates:
+                distinct_ids = set(_id_transfers or {}).union(_domain_mints or {}).union(_main_id_updates or {})
 
-        if _verifier_data or _user_data:
-            unique_ids = set(_verifier_data or {}).union(_user_data or {})
+                for _id in distinct_ids:
+                    transfers = _id_transfers.get(_id, []) if _id_transfers else []
+                    mints = _domain_mints.get(_id) if _domain_mints else None
+                    id_owner_change = _main_id_updates.get(_id) if _main_id_updates else None
 
-            for _id in unique_ids:
-                verifier_data = _verifier_data.get(_id) if _verifier_data else None
-                user_data = _user_data.get(_id) if _user_data else None
+                    transfer_to = transfers[-1].keys[2] if transfers else None
+                    transfer_from = transfers[-1].keys[1] if transfers else None
+                    if transfer_from == to_bytes("00", pad=32):
+                        transfer_from = None
 
-                starknet_id_updates.append(
-                    StarknetIDUpdate(
-                        identity=_id.to_bytes(32, "big"),
-                        kind=StarknetIDUpdateKind.identity_data_update,
-                        data={"verifier_data": verifier_data, "user_data": user_data},
-                        **update_params,  # type: ignore
+                    starknet_id_updates.append(
+                        StarknetIDUpdate(
+                            identity=_id.to_bytes(32, "big"),
+                            kind=StarknetIDUpdateKind.identity_update,
+                            data={
+                                "domains": mints,
+                                "new_owner": transfer_to or id_owner_change,
+                                "old_owner": transfer_from,
+                            },
+                            **update_params,  # type: ignore
+                        )
                     )
-                )
+
+            # Identity User & Verifier Data Update
+            _verifier_data = _get_identity_verifier_data(update_events, identity_contract)
+            _user_data = _get_identity_user_data(update_events, identity_contract)
+
+            if _verifier_data or _user_data:
+                unique_ids = set(_verifier_data or {}).union(_user_data or {})
+
+                for _id in unique_ids:
+                    verifier_data = _verifier_data.get(_id) if _verifier_data else None
+                    user_data = _user_data.get(_id) if _user_data else None
+
+                    starknet_id_updates.append(
+                        StarknetIDUpdate(
+                            identity=_id.to_bytes(32, "big"),
+                            kind=StarknetIDUpdateKind.identity_data_update,
+                            data={"verifier_data": verifier_data, "user_data": user_data},
+                            **update_params,  # type: ignore
+                        )
+                    )
+        except Exception as e:
+            logger.error(f"Error parsing StarknetID Update Tx {update_tx}: {e}")
+            continue
+
+
 
     return starknet_id_updates
 
