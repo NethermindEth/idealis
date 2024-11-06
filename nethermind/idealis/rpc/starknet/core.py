@@ -193,7 +193,10 @@ def sync_get_class_abi(
 
 
 async def get_class_abis(
-    class_hashes: list[bytes], rpc_url: str, aiohttp_session: ClientSession, block_number: int | None
+    class_hashes: list[bytes],
+    rpc_url: str,
+    aiohttp_session: ClientSession,
+    block_number: int | None = None,
 ) -> Sequence[list[dict[str, Any]] | None]:
     """
     Asynchronously query class ABIs for a list of class hashes.
