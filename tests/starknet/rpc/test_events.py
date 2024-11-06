@@ -26,6 +26,7 @@ async def test_get_starknet_eth_transfers(starknet_rpc_url, async_http_session):
 
 
 # Verifies RPC paging & continuation tokens
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_get_avnu_proxy_upgrades(starknet_rpc_url, async_http_session):
     events = await get_events_for_contract(

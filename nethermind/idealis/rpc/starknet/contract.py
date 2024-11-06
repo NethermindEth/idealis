@@ -141,7 +141,7 @@ async def get_proxied_felt(
         return to_bytes(response_json["result"][0], pad=32)
 
 
-async def get_contract_upgrade(
+async def get_contract_upgrade(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -169,7 +169,7 @@ async def get_contract_upgrade(
     )
 
 
-async def get_proxy_upgrade(
+async def get_proxy_upgrade(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -198,7 +198,7 @@ async def get_proxy_upgrade(
     )
 
 
-async def get_class_history(
+async def get_class_history(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -252,7 +252,7 @@ async def get_class_history(
     return implementation_history
 
 
-async def _generate_proxy_history_bisection(
+async def _generate_proxy_history_bisection(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -301,14 +301,14 @@ async def _generate_proxy_history_bisection(
             to_block=to_block,
         )
 
-        assert initial_impl is not None, f"Proxy cannot upgrade it implementation to None"
+        assert initial_impl is not None, "Proxy cannot upgrade it implementation to None"
 
         proxy_history.update({str(from_block): to_hex(initial_impl, pad=32)})
 
     return proxy_history
 
 
-async def get_proxy_impl_history(
+async def get_proxy_impl_history(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     aiohttp_session: ClientSession,
     rpc_url: str,
     contract_address: bytes,
@@ -356,6 +356,24 @@ async def generate_contract_implementation(
     contract_address: bytes,
     to_block: int | None,
 ) -> ContractImplementation | None:
+    """
+    Given a contract address & a class decoder, generate a history of classes that the contract has implemented over
+    time.  If any of the classes are standard proxies, it will scan through the implementation history and return the
+    implementations over time for the proxy contract.
+
+    .. warning:
+        This method spams the RPC node up to hundreds of times to run a bisection algorithm.  For complex proxies,
+        this can take a long time.  Also, if a proxy only has Upgraded events to track history, can take several
+        minutes to query events
+
+    :param class_decoder:
+        DecodingDispatcher for checking classes.  Reccomended to use idealis.utils.starknet.PessimisticDecoder which
+        can load in new classes as needed
+    :param rpc_url: JSON RPC to spam.
+    :param aiohttp_session: Async HTTP Client Session
+    :param contract_address:  Contract address to scan
+    :param to_block: Generate implementation history from 0 -> to_block
+    """
     if to_block is None:
         to_block = sync_get_current_block(rpc_url)
 
@@ -377,7 +395,6 @@ async def generate_contract_implementation(
             contract_impl_history.update({str(block): class_hash})
             continue
 
-        # TODO: Write new generate_proxy_impl_history function w/ Open Zeppelin Events
         # Proxy Handling Logic
         if len(class_history_items) - 1 == item_idx:
             proxy_to_block = to_block
@@ -448,7 +465,8 @@ async def update_contract_implementation(
         )
 
         # Update Root Class History
-        contract_history.history.update({str(k): v for k, v in class_history.items()})
+        if class_history is not None:
+            contract_history.history.update({str(k): v for k, v in class_history.items()})
 
     proxy_kind = is_dispatcher_class_proxy(class_decoder, latest_root_impl)
 

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from nethermind.idealis.types.base import DataclassDBInterface
+from nethermind.idealis.types.starknet.enums import ProxyKind
 
 
 @dataclass(slots=True)
@@ -55,8 +56,8 @@ class ClassDeclaration(DataclassDBInterface):
     declaration_timestamp: int
     declare_transaction_hash: bytes
 
+    proxy_kind: ProxyKind | None
     is_account: bool
-    is_proxy: bool
     is_erc_20: bool
     is_erc_721: bool
 

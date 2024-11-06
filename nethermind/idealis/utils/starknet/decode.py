@@ -12,12 +12,15 @@ logger = root_logger.getChild("starknet").getChild("decoding")
 
 
 def get_parsed_class(class_hash, rpc_url) -> StarknetAbi | None:
+    """
+    Get starknet class ABI from chain, and return None if any errors occur when loading class
+    """
     class_abi = sync_get_class_abi(class_hash, rpc_url)
     if class_abi is None:
         return None
     try:
         return StarknetAbi.from_json(abi_json=class_abi, class_hash=class_hash)
-    except BaseException as e:  # pylint: disable-broad-exception-caught
+    except BaseException as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Error parsing ABI for class 0x{class_hash.hex()}...  {e}")
         return None
 

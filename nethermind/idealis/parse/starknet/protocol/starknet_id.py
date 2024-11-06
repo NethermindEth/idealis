@@ -229,7 +229,7 @@ def parse_starknet_id_updates(
 
             starknet_id_updates.append(
                 StarknetIDUpdate(
-                    identity=starknet_keccak(data[1].encode('utf-8')),
+                    identity=starknet_keccak(data[1].encode("utf-8")),
                     kind=StarknetIDUpdateKind.subdomain_to_address_update,
                     data={"domain": data[1], "address": data[0]},
                     **update_params,  # type: ignore
@@ -244,7 +244,7 @@ def parse_starknet_id_updates(
             distinct_ids = set(_id_transfers or {}).union(_domain_mints or {}).union(_main_id_updates or {})
 
             for _id in distinct_ids:
-                transfers = _id_transfers.get(_id, []) if _id_transfers else None
+                transfers = _id_transfers.get(_id, []) if _id_transfers else []
                 mints = _domain_mints.get(_id) if _domain_mints else None
                 id_owner_change = _main_id_updates.get(_id) if _main_id_updates else None
 
@@ -255,7 +255,7 @@ def parse_starknet_id_updates(
 
                 starknet_id_updates.append(
                     StarknetIDUpdate(
-                        identity=_id.to_bytes(32, 'big'),
+                        identity=_id.to_bytes(32, "big"),
                         kind=StarknetIDUpdateKind.identity_update,
                         data={
                             "domains": mints,
@@ -279,7 +279,7 @@ def parse_starknet_id_updates(
 
                 starknet_id_updates.append(
                     StarknetIDUpdate(
-                        identity=_id.to_bytes(32, 'big'),
+                        identity=_id.to_bytes(32, "big"),
                         kind=StarknetIDUpdateKind.identity_data_update,
                         data={"verifier_data": verifier_data, "user_data": user_data},
                         **update_params,  # type: ignore
@@ -290,8 +290,7 @@ def parse_starknet_id_updates(
 
 
 def enrich_starknet_id_updates(
-    updates: list[StarknetIDUpdate],
-    transaction_data: dict[tuple[int, int], tuple[int, bytes]]
+    updates: list[StarknetIDUpdate], transaction_data: dict[tuple[int, int], tuple[int, bytes]]
 ) -> list[StarknetIDUpdate]:
     """
     Enrich starknet ID Updates with block timestamp & transaction hash.  Requires a tx position hashmap with block
@@ -301,7 +300,7 @@ def enrich_starknet_id_updates(
     :param transaction_data: Dictionary between (block_num, tx_idx) -> (block_timestamp, tx_hash)
     """
     for update in updates:
-        tx_data = transaction_data.get((update.block_timestamp, update.transaction_index))
+        tx_data = transaction_data.get((update.block_number, update.transaction_index))
         if tx_data is None:
             continue
 
@@ -335,7 +334,7 @@ def generate_starknet_id_state(
                 address_to_domain[update.data["address"]] = update.data["domain"]
 
             case StarknetIDUpdateKind.identity_update:
-                token_id = int.from_bytes(update.identity, 'big')
+                token_id = int.from_bytes(update.identity, "big")
                 existing_identity = identity_state.get(token_id)
 
                 # Updating Existing Identity NFT With new Domain or Owner
@@ -362,7 +361,7 @@ def generate_starknet_id_state(
                     address_to_identity[update.data["new_owner"]] = token_id
 
             case StarknetIDUpdateKind.identity_data_update:
-                token_id = int.from_bytes(update.identity, 'big')
+                token_id = int.from_bytes(update.identity, "big")
 
                 if token_id not in identity_state:
                     raise ValueError(f"Cannot add Data to Nonexistent Identity {token_id}")

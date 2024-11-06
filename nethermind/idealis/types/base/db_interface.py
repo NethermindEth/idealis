@@ -23,7 +23,7 @@ class DataclassDBInterface:
             raise ValueError("Json Encoder param required for json dataclass fields")
 
         return_cols = []
-        for field_name, field_type in self.__annotations__.items():  # type: ignore
+        for field_name, field_type in self.__annotations__.items():  # type: ignore  # pylint: disable=unused-variable
             encode_field = getattr(self, field_name)
 
             if custom_parser and field_name in custom_parser:
@@ -37,6 +37,9 @@ class DataclassDBInterface:
         return tuple(return_cols)
 
     def from_db_row(self, row: Sequence[Any]):
-        for idx, (field_name, field_type) in enumerate(self.__annotations__):  # type: ignore
+        """
+        Convert a SELECT * result into a python Dataclass
+        """
+        for idx, (field_name, field_type) in enumerate(self.__annotations__):  # type: ignore # pylint: disable=unused_variable
             setattr(self, field_name, row[idx])  # type: ignore
         return self

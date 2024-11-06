@@ -124,7 +124,7 @@ async def debug_trace_block(
         return unpack_debug_trace_block_response(block_traces, block_number)
 
 
-async def get_events_for_contract(
+async def get_events_for_contract(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     contract_address: bytes | list[bytes],
     topics: list[bytes | list[bytes]],
     from_block: int,

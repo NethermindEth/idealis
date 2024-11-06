@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 
 class TraceType(Enum):
@@ -25,7 +25,7 @@ class TraceError(Enum):
     no_error = None
 
     @classmethod
-    def from_json(cls, json_val: str | None) -> Optional["TraceError"]:
+    def from_json(cls, json_val: str | None) -> Optional["TraceError"]:  # pylint: disable=too-main-return-statements
         """
         Hacky, but if->elif is fast for 99% of cases and simplifies DB interfacing
         :param json_val:

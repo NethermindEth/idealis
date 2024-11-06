@@ -47,8 +47,8 @@ def test_parse_deploy_class_declaration(starknet_rpc_url):
         "0x74ddc960b4568092956dade86c2919a6f5c06524beefcb5a0a7b25ee3db250c", pad=32
     )
 
+    assert class_declaration[0].proxy_kind is None
     assert class_declaration[0].is_account == False
-    assert class_declaration[0].is_proxy == False
     assert class_declaration[0].is_erc_20 == False
 
 

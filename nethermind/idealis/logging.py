@@ -81,7 +81,7 @@ class LokiLoggerHandler(Handler):
         self.logger_labels = logger_labels or {}
         self.write_delay = write_delay
 
-        self._buffer: queue.Queue = queue.Queue()
+        self._buffer: queue.Queue[LokiLogLine] = queue.Queue()
         self._request_session = requests.session()
         self._flush_thread = threading.Thread(target=self._flush, daemon=True)
 
