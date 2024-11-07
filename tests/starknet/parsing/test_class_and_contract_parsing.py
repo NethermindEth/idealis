@@ -1,3 +1,5 @@
+import pytest
+
 from nethermind.idealis.parse.starknet.transaction import parse_transaction_with_receipt
 from nethermind.idealis.rpc.starknet.classes import (
     get_class_declarations,
@@ -7,7 +9,7 @@ from nethermind.idealis.utils import to_bytes
 from nethermind.idealis.utils.starknet import PessimisticDecoder
 
 
-def test_parse_deploy_class_declaration(starknet_rpc_url):
+async def test_parse_deploy_class_declaration(starknet_rpc_url, async_http_session):
     tx_and_receipt_json = {
         "transaction": {
             "transaction_hash": "0x4026b1598e5915737d439e8b8493cce9e47a5a334948e28f55c391bc2e0c2e2",
@@ -34,8 +36,11 @@ def test_parse_deploy_class_declaration(starknet_rpc_url):
         tx_and_receipt_json, block_number=146, transaction_index=9, block_timestamp=1638108551
     )
 
-    class_declaration = get_class_declarations(
-        declare_transactions=[], deploy_transactions=[transaction_response], json_rpc=starknet_rpc_url
+    class_declaration = await get_class_declarations(
+        declare_transactions=[],
+        deploy_transactions=[transaction_response],
+        json_rpc=starknet_rpc_url,
+        client_session=async_http_session,
     )
 
     assert len(class_declaration) == 1
@@ -52,7 +57,8 @@ def test_parse_deploy_class_declaration(starknet_rpc_url):
     assert class_declaration[0].is_erc_20 == False
 
 
-def test_parse_erc20_declare(starknet_rpc_url):
+@pytest.mark.asyncio
+async def test_parse_erc20_declare(starknet_rpc_url, async_http_session):
     tx_and_receipt_json = {
         "transaction": {
             "transaction_hash": "0x48d03ccfd58eb2a468779a7427a738e98dcb02a69923a185bd4a89d5a9985ef",
@@ -101,8 +107,11 @@ def test_parse_erc20_declare(starknet_rpc_url):
         tx_and_receipt_json, block_number=629084, transaction_index=25, block_timestamp=1711956804
     )
 
-    class_declarations = get_class_declarations(
-        declare_transactions=[transaction_response], deploy_transactions=[], json_rpc=starknet_rpc_url
+    class_declarations = await get_class_declarations(
+        declare_transactions=[transaction_response],
+        deploy_transactions=[],
+        json_rpc=starknet_rpc_url,
+        client_session=async_http_session,
     )
 
     assert len(class_declarations) == 1
@@ -118,7 +127,8 @@ def test_parse_erc20_declare(starknet_rpc_url):
     assert class_declarations[0].is_account == False
 
 
-def test_parse_account_class(starknet_rpc_url):
+@pytest.mark.asyncio
+async def test_parse_account_class(starknet_rpc_url, async_http_session):
     tx_and_receipt_json = {
         "transaction": {
             "transaction_hash": "0x1d9107b0ca6d3e612ae22a3e03b83390c8e864c62d8f52471d3bb89dfa35e6b",
@@ -167,8 +177,11 @@ def test_parse_account_class(starknet_rpc_url):
         tx_and_receipt_json, block_number=532944, transaction_index=54, block_timestamp=1707131436
     )
 
-    class_declaration = get_class_declarations(
-        declare_transactions=[transaction_response], deploy_transactions=[], json_rpc=starknet_rpc_url
+    class_declaration = await get_class_declarations(
+        declare_transactions=[transaction_response],
+        deploy_transactions=[],
+        json_rpc=starknet_rpc_url,
+        client_session=async_http_session,
     )
 
     assert len(class_declaration) == 1

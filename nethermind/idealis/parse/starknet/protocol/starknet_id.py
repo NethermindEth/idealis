@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from nethermind.idealis.parse.starknet.event import TRANSFER_SIGNATURE
+from nethermind.idealis.types.base import ERC721Transfer
 from nethermind.idealis.types.starknet import Event
 from nethermind.idealis.types.starknet.protocol.starknet_id import (
     StarknetIDIdentity,
@@ -18,8 +19,9 @@ from nethermind.idealis.utils.starknet.protocol import (
 )
 from nethermind.starknet_abi.utils import starknet_keccak
 
-V0_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"addr_to_domain_update")
-V1_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"AddressToDomainUpdate")
+V0_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"domain_to_addr_update")
+V1_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"addr_to_domain_update")
+V2_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"AddressToDomainUpdate")
 
 V0_NAMING_DOMAIN_MINT = starknet_keccak(b"starknet_id_update")
 V1_NAMING_DOMAIN_MINT = starknet_keccak(b"DomainMint")
@@ -53,15 +55,26 @@ def _starknet_id_defaults(event: Event, skip_keys: set[str]) -> dict[str, Any]:
     return {k: v for k, v in event_defaults.items() if k not in skip_keys}
 
 
-def _get_addr_to_domain_update(event: Event) -> tuple[bytes, str] | None:
-    if event.keys[0] == V0_ADDR_TO_DOMAIN_UPDATE:
-        domain = decode_subdomain([int.from_bytes(b) for b in event.data[2:]])
-        return event.data[0], domain
-    elif event.keys[0] == V1_ADDR_TO_DOMAIN_UPDATE:
-        domain = decode_subdomain([int.from_bytes(b) for b in event.data[1:]])
-        return event.keys[1], domain
-    else:
-        return None
+def _get_addr_to_domain_updates(events: list[Event]) -> list[tuple[bytes, str]] | None:
+    updates: list[tuple[bytes, str]] = []
+
+    for event in events:
+        if event.keys[0] == V0_ADDR_TO_DOMAIN_UPDATE:
+            _domain_data = [int.from_bytes(b) for b in event.data[1:-1]]
+            domain = decode_subdomain(_domain_data) if _domain_data else None
+            updates.append((event.data[-1], domain))
+        elif event.keys[0] == V1_ADDR_TO_DOMAIN_UPDATE:
+            _domain_data = [int.from_bytes(b) for b in event.data[2:]]
+            domain = decode_subdomain(_domain_data) if _domain_data else None
+            updates.append((event.data[0], domain))
+        elif event.keys[0] == V2_ADDR_TO_DOMAIN_UPDATE:
+            _domain_data = [int.from_bytes(b) for b in event.data[1:]]
+            domain = decode_subdomain(_domain_data) if _domain_data else None
+            updates.append((event.keys[1], domain))
+        else:
+            continue
+
+    return updates if updates else None
 
 
 def _get_domain_mints(naming_events: list[Event], naming_contract: bytes) -> dict[int, list[tuple[str, int]]] | None:
@@ -73,7 +86,7 @@ def _get_domain_mints(naming_events: list[Event], naming_contract: bytes) -> dic
             continue
 
         if e.keys[0] == V0_NAMING_DOMAIN_MINT:
-            domain = decode_starknet_id_domain(int.from_bytes(e.data[1:-3][0], "big"))
+            domain = decode_starknet_id_domain(int.from_bytes(e.data[1:-2][0], "big"))
             owner = int.from_bytes(e.data[-2], "big")
             expire = int.from_bytes(e.data[-1], "big")
 
@@ -93,7 +106,7 @@ def _get_domain_mints(naming_events: list[Event], naming_contract: bytes) -> dic
     return domain_mints if domain_mints else None
 
 
-def _get_identity_transfers(events: list[Event], identity_contract: bytes) -> dict[int, list[Event]] | None:
+def _get_identity_transfers(events: list[Event], identity_contract: bytes) -> dict[int, list[ERC721Transfer]] | None:
     """
     Given a list of events, get all the Starkent ID Identity transfers, and return a mapping identity IDs to
     transfer events
@@ -102,16 +115,42 @@ def _get_identity_transfers(events: list[Event], identity_contract: bytes) -> di
     :param identity_contract:
     :return:
     """
-    id_transfers: dict[int, list[Event]] = {}
+    id_transfers: dict[int, list[ERC721Transfer]] = {}
+
     for e in events:
         if e.contract_address != identity_contract or e.keys[0] != TRANSFER_SIGNATURE:
             continue
 
-        identity_token_id = int.from_bytes(e.keys[3], "big")
-        if identity_token_id in id_transfers:
-            id_transfers[identity_token_id].append(e)
+        shared_params = {
+            "block_number": e.block_number,
+            "transaction_index": e.transaction_index,
+            "event_index": e.event_index,
+            "token_address": e.contract_address,
+        }
+
+        if len(e.keys) == 5:
+            identity_token_id = int.from_bytes(e.keys[3], "big")
+            transfer = ERC721Transfer(
+                from_address=e.keys[1] if int(e.keys[1].hex(), 16) > 0 else None,
+                to_address=e.keys[2] if int(e.keys[2].hex(), 16) > 0 else None,
+                token_id=e.keys[3],
+                **shared_params,
+            )
+        elif len(e.keys) == 1 and len(e.data) == 4:
+            identity_token_id = int.from_bytes(e.data[2], "big")
+            transfer = ERC721Transfer(
+                from_address=e.data[0] if int(e.data[0].hex(), 16) > 0 else None,
+                to_address=e.data[1] if int(e.data[1].hex(), 16) > 0 else None,
+                token_id=e.data[2],
+                **shared_params,
+            )
         else:
-            id_transfers[identity_token_id] = [e]
+            continue
+
+        if identity_token_id in id_transfers:
+            id_transfers[identity_token_id].append(transfer)
+        else:
+            id_transfers[identity_token_id] = [transfer]
 
     return id_transfers if id_transfers else None
 
@@ -145,10 +184,16 @@ def _get_identity_verifier_data(
             continue
 
         if e.keys[0] == V1_IDENTITY_VERIFIER_DATA_UPDATE:
-            identity_id = int.from_bytes(e.keys[1], "big")
-            field = e.data[0].decode("utf-8")
-            data = [e.data[1]]
-            verifier_contract = e.data[2]
+            if len(e.keys) == 2:
+                identity_id = int.from_bytes(e.keys[1], "big")
+                field = e.data[0].decode("utf-8")
+                data = [e.data[1]]
+                verifier_contract = e.data[2]
+            else:
+                identity_id = int.from_bytes(e.data[0], "big")
+                field = e.data[1].decode("utf-8")
+                data = [e.data[2]]
+                verifier_contract = e.data[3]
 
         elif e.keys[0] == V1_IDENTITY_EXTENDED_VERIFIER_DATA_UPDATE:
             identity_id = int.from_bytes(e.keys[1], "big")
@@ -228,19 +273,21 @@ def parse_starknet_id_updates(
             }
 
             # Simple Subdomain Registration
-            if len(update_events) == 1 and update_events[0].contract_address == naming_contract:
-                data = _get_addr_to_domain_update(update_events[0])
-                if data is None:
-                    raise ValueError(f"Cannot Parse StarknetID subdomain registration for {update_events[0]}")
+            _domain_to_address_updates = _get_addr_to_domain_updates(update_events)
+            if _domain_to_address_updates:
+                updates = {}
+                for address, domain in _domain_to_address_updates:
+                    updates[domain] = address
 
-                starknet_id_updates.append(
-                    StarknetIDUpdate(
-                        identity=starknet_keccak(data[1].encode("utf-8")),
-                        kind=StarknetIDUpdateKind.subdomain_to_address_update,
-                        data={"domain": data[1], "address": data[0]},
-                        **update_params,  # type: ignore
+                for domain, address in updates.items():
+                    starknet_id_updates.append(
+                        StarknetIDUpdate(
+                            identity=address,
+                            kind=StarknetIDUpdateKind.subdomain_to_address_update,
+                            data={"domain": domain, "address": address},
+                            **update_params,  # type: ignore
+                        )
                     )
-                )
 
             # Domain Identity Update -- All updates tied to a Identity Token ID
             _id_transfers = _get_identity_transfers(update_events, identity_contract)
@@ -254,8 +301,8 @@ def parse_starknet_id_updates(
                     mints = _domain_mints.get(_id) if _domain_mints else None
                     id_owner_change = _main_id_updates.get(_id) if _main_id_updates else None
 
-                    transfer_to = transfers[-1].keys[2] if transfers else None
-                    transfer_from = transfers[-1].keys[1] if transfers else None
+                    transfer_to = transfers[-1].to_address if transfers else None
+                    transfer_from = transfers[-1].from_address if transfers else None
                     if transfer_from == to_bytes("00", pad=32):
                         transfer_from = None
 
@@ -291,11 +338,10 @@ def parse_starknet_id_updates(
                             **update_params,  # type: ignore
                         )
                     )
+
         except Exception as e:
             logger.error(f"Error parsing StarknetID Update Tx {update_tx}: {e}")
             continue
-
-
 
     return starknet_id_updates
 
@@ -342,7 +388,10 @@ def generate_starknet_id_state(
     for update in sorted_id_updates:
         match update.kind:
             case StarknetIDUpdateKind.subdomain_to_address_update:
-                address_to_domain[update.data["address"]] = update.data["domain"]
+                if update.data["domain"] is None:
+                    address_to_domain.pop(update.data["address"])
+                else:
+                    address_to_domain[update.data["address"]] = update.data["domain"]
 
             case StarknetIDUpdateKind.identity_update:
                 token_id = int.from_bytes(update.identity, "big")

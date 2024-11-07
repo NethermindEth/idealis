@@ -48,7 +48,9 @@ def test_parse_starknet_id_subdomain():
 
     starknet_id_updates = parse_starknet_id_updates([naming_event])
 
-    assert starknet_id_updates[0].identity == starknet_keccak(b"villanita.braavos.stark")
+    assert starknet_id_updates[0].identity == to_bytes(
+        "0x62cf279668311fb3850dafdfe3f8ed00ec72f1e824056633c9bfc7940de19ce"
+    )
     assert starknet_id_updates[0].kind == StarknetIDUpdateKind.subdomain_to_address_update
     assert starknet_id_updates[0].data == {
         "domain": "villanita.braavos.stark",
@@ -69,19 +71,85 @@ def test_parse_starknet_id_subdomain():
     )
 
 
+# https://voyager.online/tx/0x4f5d0a729dfe51db240bd45a5a95802a5943700805f69aafa6f172a9b190a2#events
+# Mint Identity NFT, register domain to addr, verifier data update
+@pytest.mark.asyncio
+async def test_parse_v0_starknet_id_state(starknet_rpc_url, async_http_session, debug_logger):
+    _, _, events, _ = await get_blocks_with_txns([15997], starknet_rpc_url, async_http_session)
+    filtered_events = [e for e in events if e.transaction_index == 0]
+
+    starknet_id_updates = parse_starknet_id_updates(filtered_events)
+
+    assert len(starknet_id_updates) == 3
+
+    assert starknet_id_updates[0].identity == to_bytes(
+        "0xba6203a9e1f442844bf5a65f1a25aa2cfa7c390c398de845fe267c4a1be951"
+    )
+    assert starknet_id_updates[0].kind == StarknetIDUpdateKind.subdomain_to_address_update
+    assert starknet_id_updates[0].data == {
+        "domain": "tirol.stark",
+        "address": to_bytes("0xba6203a9e1f442844bf5a65f1a25aa2cfa7c390c398de845fe267c4a1be951"),
+    }
+
+    assert starknet_id_updates[1].identity == to_bytes("0x45994ba040", pad=32)
+    assert starknet_id_updates[1].kind == StarknetIDUpdateKind.identity_update
+    assert starknet_id_updates[1].data == {
+        "domains": [
+            (
+                "tirol.stark",
+                0x67537D8D,
+            )
+        ],
+        "new_owner": to_bytes("0xba6203a9e1f442844bf5a65f1a25aa2cfa7c390c398de845fe267c4a1be951"),
+        "old_owner": None,
+    }
+
+    assert starknet_id_updates[2].identity == (298924613696).to_bytes(32, "big")
+    assert starknet_id_updates[2].kind == StarknetIDUpdateKind.identity_data_update
+    assert starknet_id_updates[2].data == {
+        "user_data": None,
+        "verifier_data": {
+            "name": (
+                [to_bytes("0x03026a8611e5f8fe2b15af5003011c57ac08ae00ed25a8093c749f4115013186")],
+                to_bytes("0x06ac597f8116f886fa1c97a23fa4e08299975ecaf6b598873ca6792b9bbfb678"),
+            ),
+        },
+    }
+
+    starknet_ids, domains, id_map = generate_starknet_id_state({}, {}, {}, starknet_id_updates)
+
+    assert len(starknet_ids) == 1
+    assert len(domains) == 1
+    assert len(id_map) == 1
+
+    assert id_map[to_bytes("0xba6203a9e1f442844bf5a65f1a25aa2cfa7c390c398de845fe267c4a1be951")] == 298924613696
+
+    id_data = starknet_ids[298924613696]
+    assert id_data.domain == "tirol.stark"
+
+
 # https://voyager.online/tx/0x7dc6fc8d6c8feda05d719dcd8664ed7cc7c6aa3ac67af65946f24bc8ea75abe#events
 # Register Subdomain, Identity NFT Transfer, & Verifier Data Update
 @pytest.mark.asyncio
-async def test_parse_starknet_id_state(starknet_rpc_url, async_http_session):
+async def test_parse_v1_starknet_id_state(starknet_rpc_url, async_http_session):
     _, _, events, _ = await get_blocks_with_txns([861040], starknet_rpc_url, async_http_session)
     filtered_events = [e for e in events if e.transaction_index == 0]
 
     starknet_id_updates = parse_starknet_id_updates(filtered_events)
-    # assert len(starknet_id_updates) == 2
+    assert len(starknet_id_updates) == 3
 
-    assert starknet_id_updates[0].identity == (73857595493).to_bytes(32, "big")
-    assert starknet_id_updates[0].kind == StarknetIDUpdateKind.identity_update
+    assert starknet_id_updates[0].identity == to_bytes(
+        "0x077b8e5a28ebee88712bf92405d3c9fdcaad66310232305bf3df91a365140bc5"
+    )
+    assert starknet_id_updates[0].kind == StarknetIDUpdateKind.subdomain_to_address_update
     assert starknet_id_updates[0].data == {
+        "domain": None,
+        "address": to_bytes("0x077b8e5a28ebee88712bf92405d3c9fdcaad66310232305bf3df91a365140bc5"),
+    }
+
+    assert starknet_id_updates[1].identity == (73857595493).to_bytes(32, "big")
+    assert starknet_id_updates[1].kind == StarknetIDUpdateKind.identity_update
+    assert starknet_id_updates[1].data == {
         "domains": [
             (
                 "aliaksandra.stark",
@@ -92,9 +160,9 @@ async def test_parse_starknet_id_state(starknet_rpc_url, async_http_session):
         "old_owner": None,
     }
 
-    assert starknet_id_updates[1].identity == (73857595493).to_bytes(32, "big")
-    assert starknet_id_updates[1].kind == StarknetIDUpdateKind.identity_data_update
-    assert starknet_id_updates[1].data == {
+    assert starknet_id_updates[2].identity == (73857595493).to_bytes(32, "big")
+    assert starknet_id_updates[2].kind == StarknetIDUpdateKind.identity_data_update
+    assert starknet_id_updates[2].data == {
         "verifier_data": {
             "name": (
                 [to_bytes("07053be99dead06f61801c9b5ca6543793cd63d282edf0bfac5e3acaecf103f5")],
@@ -112,15 +180,22 @@ async def test_parse_starknet_id_state(starknet_rpc_url, async_http_session):
         "user_data": None,
     }
 
-    starknet_ids, domains, id_map = generate_starknet_id_state({}, {}, {}, starknet_id_updates)
+    id_state, addrs_to_domains, id_map = generate_starknet_id_state(
+        identity_state={},
+        address_to_domain={
+            to_bytes("0x077b8e5a28ebee88712bf92405d3c9fdcaad66310232305bf3df91a365140bc5"): "aliaksandra.vip.stark"
+        },
+        address_to_identity={},
+        starknet_id_updates=starknet_id_updates,
+    )
 
-    assert len(starknet_ids) == 1
-    assert len(domains) == 0
+    assert len(id_state) == 1
+    assert len(addrs_to_domains) == 0
     assert len(id_map) == 1
 
     assert id_map[to_bytes("0x077b8e5a28ebee88712bf92405d3c9fdcaad66310232305bf3df91a365140bc5")] == 0x1132417865
 
-    id_data = starknet_ids[0x1132417865]
+    id_data = id_state[0x1132417865]
     assert id_data.domain == "aliaksandra.stark"
 
 

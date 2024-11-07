@@ -325,8 +325,8 @@ async def test_duplicate_class_declaration_parsing(async_http_session, starknet_
 
     filtered_txns = filter_transactions_by_type(transactions)
 
-    class_declarations = get_class_declarations(
-        filtered_txns.declare_transactions, filtered_txns.deploy_transactions, starknet_rpc_url
+    class_declarations = await get_class_declarations(
+        filtered_txns.declare_transactions, filtered_txns.deploy_transactions, starknet_rpc_url, async_http_session
     )
 
     assert len(class_declarations) == 3
