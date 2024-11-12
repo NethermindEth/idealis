@@ -139,7 +139,11 @@ async def get_blocks_with_txns(
     return out_blocks, out_txns, out_events, out_messages
 
 
-def _parse_class_abi_response(json_response: dict[str, Any], class_hash) -> list[dict[str, Any]] | None:
+def _parse_class_abi_response(
+    json_response: dict[str, Any],
+    class_hash: bytes,
+    log_invalid_abis: bool = True,
+) -> list[dict[str, Any]] | None:
     try:
         rpc_abi_response = json_response["result"]["abi"]
     except KeyError:  # pylint: disable=raise-missing-from
@@ -149,14 +153,16 @@ def _parse_class_abi_response(json_response: dict[str, Any], class_hash) -> list
         try:
             class_abi = json.loads(rpc_abi_response)
         except json.JSONDecodeError:
-            logger.error(f"Invalid ABI for class 0x{class_hash.hex()}.  Could not parse ABI JSON...")
+            if log_invalid_abis:
+                logger.error(f"Invalid ABI for class 0x{class_hash.hex()}.  Could not parse ABI JSON...")
             return None
     else:
         # ABI Is already decoded into dict with response.json()
         class_abi = rpc_abi_response
 
     if class_abi is None or len(class_abi) == 0:
-        logger.warning(f"Empty ABI for class 0x{class_hash.hex()}")
+        if log_invalid_abis:
+            logger.warning(f"Empty ABI for class 0x{class_hash.hex()}")
         return None
 
     return class_abi
@@ -197,6 +203,7 @@ async def get_class_abis(
     rpc_url: str,
     aiohttp_session: ClientSession,
     block_number: int | None = None,
+    log_invalid_abis: bool = False,
 ) -> Sequence[list[dict[str, Any]] | None]:
     """
     Asynchronously query class ABIs for a list of class hashes.
@@ -225,7 +232,7 @@ async def get_class_abis(
             if "error" in response_json:
                 return None
 
-            return _parse_class_abi_response(response_json, class_hash)
+            return _parse_class_abi_response(response_json, class_hash, log_invalid_abis)
 
     class_abis = await asyncio.gather(*[_get_class(class_hash) for class_hash in class_hashes])
     return class_abis
