@@ -19,7 +19,7 @@ from nethermind.idealis.utils.starknet.protocol import (
 )
 from nethermind.starknet_abi.utils import starknet_keccak
 
-V0_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"domain_to_addr_update")
+# V0_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"domain_to_addr_update")
 V1_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"addr_to_domain_update")
 V2_ADDR_TO_DOMAIN_UPDATE = starknet_keccak(b"AddressToDomainUpdate")
 
@@ -55,15 +55,15 @@ def _starknet_id_defaults(event: Event, skip_keys: set[str]) -> dict[str, Any]:
     return {k: v for k, v in event_defaults.items() if k not in skip_keys}
 
 
-def _get_addr_to_domain_updates(events: list[Event]) -> list[tuple[bytes, str]] | None:
-    updates: list[tuple[bytes, str]] = []
+def _get_addr_to_domain_updates(events: list[Event]) -> list[tuple[bytes, str | None]] | None:
+    updates: list[tuple[bytes, str | None]] = []
 
     for event in events:
-        if event.keys[0] == V0_ADDR_TO_DOMAIN_UPDATE:
-            _domain_data = [int.from_bytes(b) for b in event.data[1:-1]]
-            domain = decode_subdomain(_domain_data) if _domain_data else None
-            updates.append((event.data[-1], domain))
-        elif event.keys[0] == V1_ADDR_TO_DOMAIN_UPDATE:
+        # if event.keys[0] == V0_ADDR_TO_DOMAIN_UPDATE:
+        #     _domain_data = [int.from_bytes(b) for b in event.data[1:-1]]
+        #     domain = decode_subdomain(_domain_data) if _domain_data else None
+        #     updates.append((event.data[-1], domain))
+        if event.keys[0] == V1_ADDR_TO_DOMAIN_UPDATE:
             _domain_data = [int.from_bytes(b) for b in event.data[2:]]
             domain = decode_subdomain(_domain_data) if _domain_data else None
             updates.append((event.data[0], domain))
@@ -283,7 +283,7 @@ def parse_starknet_id_updates(
                     starknet_id_updates.append(
                         StarknetIDUpdate(
                             identity=address,
-                            kind=StarknetIDUpdateKind.subdomain_to_address_update,
+                            kind=StarknetIDUpdateKind.address_to_domain_update,
                             data={"domain": domain, "address": address},
                             **update_params,  # type: ignore
                         )
@@ -387,7 +387,7 @@ def generate_starknet_id_state(
 
     for update in sorted_id_updates:
         match update.kind:
-            case StarknetIDUpdateKind.subdomain_to_address_update:
+            case StarknetIDUpdateKind.address_to_domain_update:
                 if update.data["domain"] is None:
                     address_to_domain.pop(update.data["address"])
                 else:

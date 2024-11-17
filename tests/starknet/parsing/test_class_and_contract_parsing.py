@@ -9,6 +9,7 @@ from nethermind.idealis.utils import to_bytes
 from nethermind.idealis.utils.starknet import PessimisticDecoder
 
 
+@pytest.mark.asyncio
 async def test_parse_deploy_class_declaration(starknet_rpc_url, async_http_session):
     tx_and_receipt_json = {
         "transaction": {

@@ -6,9 +6,9 @@ from nethermind.idealis.types.base import DataclassDBInterface
 
 
 class StarknetIDUpdateKind(Enum):
-    subdomain_to_address_update = "Subdomain -> Address Update"
-    # Basic Update mapping a subdomain without an identity to an address
-    # Fields: {domain: str, address: bytes}
+    address_to_domain_update = "Address -> Domain Update"
+    # Basic Update mapping an address to a domain or subdomain.  Ignores Identity NFTs & larger starknet ID system
+    # Fields: {domain: str | None, address: bytes}
 
     identity_update = "Identity Update"
     # Minting or Transferring Identity NFT & Assigning Domain
