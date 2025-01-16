@@ -36,10 +36,56 @@ class DataclassDBInterface:
 
         return tuple(return_cols)
 
-    def from_db_row(self, row: Sequence[Any]):
+    @classmethod
+    def from_db_row(
+        cls,
+        row: Sequence[Any],
+        json_fields: set[str] | None = None,
+        json_decoder: Callable[[Any], Any] | None = None,
+        custom_parser: dict[str, Callable] | None = None,
+    ):
         """
         Convert a SELECT * result into a python Dataclass
+
+        :param row:  Row from SELECT * query
+        :param json_fields:  Set of fields to parse as JSON
+        :param json_decoder:  JSON Decoder to use for parsing JSON fields
+        :param custom_parser:  Custom parser for fields.  Maps field_name -> parse_function
+
+        >>> import json
+        >>> from decimal import Decimal
+        >>> from dataclasses import dataclass
+        >>> from nethermind.idealis.types.base import DataclassDBInterface
+        >>> @dataclass
+        ... class TestClass(DataclassDBInterface):
+        ...     field1: int
+        ...     field2: dict[str, str]
+        ...     field3: list[str]
+        ...
+        >>> TestClass.from_db_row(
+        ...     (Decimal(12345), '{"a": 12, "b": 22}', '0x1234,0x5678'),
+        ...     json_fields={'field2'},
+        ...     json_decoder=json.loads,
+        ...     custom_parser={
+        ...         'field1': lambda b: int(b),
+        ...         'field3': lambda b: b.split(',')
+        ...     }
+        ... )
+        TestClass(field1=12345, field2={'a': 12, 'b': 22}, field3=['0x1234', '0x5678'])
+
         """
-        for idx, (field_name, field_type) in enumerate(self.__annotations__):  # type: ignore # pylint: disable=unused_variable
-            setattr(self, field_name, row[idx])  # type: ignore
-        return self
+
+        if json_fields and json_decoder is None:
+            raise ValueError("No JSON Decoder provided...")
+
+        formatted_row = []
+
+        for idx, (field_name, field_type) in enumerate(cls.__annotations__.items()):
+            value = row[idx]
+            if custom_parser and field_name in custom_parser:
+                value = custom_parser[field_name](value)
+            if json_fields and field_name in json_fields:
+                value = json_decoder(value)
+            formatted_row.append(value)
+
+        return cls(*formatted_row)
