@@ -43,6 +43,7 @@ class DataclassDBInterface:
         json_fields: set[str] | None = None,
         json_decoder: Callable[[Any], Any] | None = None,
         custom_parser: dict[str, Callable] | None = None,
+        convert_bytes: bool = False,
     ):
         """
         Convert a SELECT * result into a python Dataclass
@@ -51,6 +52,7 @@ class DataclassDBInterface:
         :param json_fields:  Set of fields to parse as JSON
         :param json_decoder:  JSON Decoder to use for parsing JSON fields
         :param custom_parser:  Custom parser for fields.  Maps field_name -> parse_function
+        :param convert_bytes:  Convert bytearrays & memoryviews to immutable bytes
 
         >>> import json
         >>> from decimal import Decimal
@@ -61,19 +63,34 @@ class DataclassDBInterface:
         ...     field1: int
         ...     field2: dict[str, str]
         ...     field3: list[str]
+        ...     field4: list[bytes]
         ...
         >>> TestClass.from_db_row(
-        ...     (Decimal(12345), '{"a": 12, "b": 22}', '0x1234,0x5678'),
+        ...     (Decimal(12345), '{"a": 12, "b": 22}', '0x1234,0x5678', [bytearray(b'1234')]),
         ...     json_fields={'field2'},
         ...     json_decoder=json.loads,
         ...     custom_parser={
         ...         'field1': lambda b: int(b),
         ...         'field3': lambda b: b.split(',')
-        ...     }
+        ...     },
+        ...     convert_bytes=True
         ... )
-        TestClass(field1=12345, field2={'a': 12, 'b': 22}, field3=['0x1234', '0x5678'])
+        TestClass(field1=12345, field2={'a': 12, 'b': 22}, field3=['0x1234', '0x5678'], field4=[b'1234'])
 
         """
+
+        def _convert_bytes(value: Any) -> Any:
+            if isinstance(value, (bytearray, memoryview)):
+                return bytes(value)
+            if isinstance(value, list):
+                return [_convert_bytes(v) for v in value]
+            if isinstance(value, dict):
+                return {_convert_bytes(k): _convert_bytes(v) for k, v in value.items()}
+            if isinstance(value, tuple):
+                return tuple(_convert_bytes(v) for v in value)
+            if isinstance(value, set):
+                return {_convert_bytes(v) for v in value}
+            return value
 
         if json_fields and json_decoder is None:
             raise ValueError("No JSON Decoder provided...")
@@ -81,7 +98,8 @@ class DataclassDBInterface:
         formatted_row = []
 
         for idx, (field_name, field_type) in enumerate(cls.__annotations__.items()):
-            value = row[idx]
+            value = _convert_bytes(row[idx]) if convert_bytes else row[idx]
+
             if custom_parser and field_name in custom_parser:
                 value = custom_parser[field_name](value)
             if json_fields and field_name in json_fields:
