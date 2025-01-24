@@ -102,8 +102,8 @@ async def get_class_declarations(
                     declare_transaction_hash=tx.transaction_hash,
                     proxy_kind=None,
                     is_account=None,
-                    is_erc_20=None,
-                    is_erc_721=None,
+                    is_erc20=None,
+                    is_erc721=None,
                 )
             )
 
@@ -122,8 +122,8 @@ async def get_class_declarations(
                     declare_transaction_hash=tx.transaction_hash,
                     proxy_kind=is_class_proxy(declare_class_abi),
                     is_account=is_class_account(declare_class_abi),
-                    is_erc_20=is_class_erc20_token(declare_class_abi),
-                    is_erc_721=is_class_erc721_token(declare_class_abi),
+                    is_erc20=is_class_erc20_token(declare_class_abi),
+                    is_erc721=is_class_erc721_token(declare_class_abi),
                 )
             )
 

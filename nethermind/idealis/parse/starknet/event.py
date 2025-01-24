@@ -45,7 +45,7 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
     """
     Filter out ERC20 Transfer events from a list of Starknet Events
     """
-    erc_20_transfers, erc_721_transfers = [], []
+    erc20_transfers, erc721_transfers = [], []
 
     for event in events:
         if not event.keys or not event.decoded_params or event.keys[0] != TRANSFER_SIGNATURE:
@@ -110,7 +110,7 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                     logger.warning(f"Could not parse starknet event into ERC20 Transfer event:  {event}")
                     continue
 
-                erc_20_transfers.append(
+                erc20_transfers.append(
                     ERC20Transfer(
                         from_address=to_bytes(from_addr, pad=32),
                         to_address=to_bytes(to_addr, pad=32),
@@ -160,7 +160,7 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
                 token_id_byte_len = max((token_id_int.bit_length() + 7) // 8, 1)  # 8 bits per byte
                 token_id_bytes = token_id_int.to_bytes(token_id_byte_len, byteorder="big")
 
-                erc_721_transfers.append(
+                erc721_transfers.append(
                     ERC721Transfer(
                         from_address=to_bytes(from_addr, pad=32),
                         to_address=to_bytes(to_addr, pad=32),
@@ -172,4 +172,4 @@ def filter_transfers(events: list[Event]) -> tuple[list[ERC20Transfer], list[ERC
             case _:
                 continue
 
-    return erc_20_transfers, erc_721_transfers
+    return erc20_transfers, erc721_transfers

@@ -58,8 +58,8 @@ class ClassDeclaration(DataclassDBInterface):
 
     proxy_kind: ProxyKind | None
     is_account: bool | None
-    is_erc_20: bool | None
-    is_erc_721: bool | None
+    is_erc20: bool | None
+    is_erc721: bool | None
 
 
 @dataclass(slots=True)

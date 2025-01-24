@@ -55,7 +55,7 @@ async def test_parse_deploy_class_declaration(starknet_rpc_url, async_http_sessi
 
     assert class_declaration[0].proxy_kind is None
     assert class_declaration[0].is_account == False
-    assert class_declaration[0].is_erc_20 == False
+    assert class_declaration[0].is_erc20 == False
 
 
 @pytest.mark.asyncio
@@ -124,7 +124,7 @@ async def test_parse_erc20_declare(starknet_rpc_url, async_http_session):
         "0x48d03ccfd58eb2a468779a7427a738e98dcb02a69923a185bd4a89d5a9985ef"
     )
 
-    assert class_declarations[0].is_erc_20 == True
+    assert class_declarations[0].is_erc20 == True
     assert class_declarations[0].is_account == False
 
 
@@ -190,7 +190,7 @@ async def test_parse_account_class(starknet_rpc_url, async_http_session):
     assert class_declaration[0].declare_transaction_hash == to_bytes(
         "0x1d9107b0ca6d3e612ae22a3e03b83390c8e864c62d8f52471d3bb89dfa35e6b"
     )
-    assert class_declaration[0].is_erc_20 == False
+    assert class_declaration[0].is_erc20 == False
     assert class_declaration[0].is_account == True
     assert class_declaration[0].declaration_block == 532944
     assert class_declaration[0].declaration_timestamp == 1707131436

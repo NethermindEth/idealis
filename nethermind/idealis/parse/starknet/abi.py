@@ -148,7 +148,7 @@ def is_dispatcher_class_proxy(decoder: DecodingDispatcher, class_hash: bytes) ->
 
 
 def is_class_erc20_token(class_abi: StarknetAbi) -> bool:
-    has_erc_20_functions = all(
+    has_erc20_functions = all(
         any(param in class_abi.functions for param in supported_params)
         for supported_params in (
             ERC_NAME,
@@ -162,13 +162,13 @@ def is_class_erc20_token(class_abi: StarknetAbi) -> bool:
         )
     )
 
-    has_erc_20_events = all(event in class_abi.events for event in (ERC_TRANSFER_EVENT, ERC_APPROVAL_EVENT))
+    has_erc20_events = all(event in class_abi.events for event in (ERC_TRANSFER_EVENT, ERC_APPROVAL_EVENT))
 
-    return has_erc_20_functions and has_erc_20_events
+    return has_erc20_functions and has_erc20_events
 
 
 def is_class_erc721_token(class_abi: StarknetAbi) -> bool:
-    has_erc_721_functions = all(
+    has_erc721_functions = all(
         any(param in class_abi.functions for param in supported_params)
         for supported_params in (
             ERC_BALANCE_OF,
@@ -182,8 +182,8 @@ def is_class_erc721_token(class_abi: StarknetAbi) -> bool:
         )
     )
 
-    has_erc_721_events = all(
+    has_erc721_events = all(
         event in class_abi.events for event in (ERC_TRANSFER_EVENT, ERC_APPROVAL_EVENT, ERC_APPROVAL_FOR_ALL_EVENT)
     )
 
-    return has_erc_721_functions and has_erc_721_events
+    return has_erc721_functions and has_erc721_events
